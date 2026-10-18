@@ -1,0 +1,15 @@
+{
+  "name": "Аукцион — онлайн",
+  "short_name": "Аукцион",
+  "description": "Онлайн-аукцион для 3–6 игроков.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#071b15",
+  "theme_color": "#071b15",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
