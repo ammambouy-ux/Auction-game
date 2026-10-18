@@ -3,80 +3,77 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0c1019">
-  <meta name="description" content="Онлайн-аукцион для 3–6 игроков. Выбирай лоты, делай ставки и собирай самую прибыльную коллекцию.">
-  <title>Аукцион — играй за прибыль</title>
+  <meta name="theme-color" content="#071b15">
+  <meta name="description" content="Аукцион — онлайн-игра на ставки для 3–6 игроков.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Аукцион — закрытый стол</title>
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <div class="felt-grain" aria-hidden="true"></div>
   <main class="shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Аукцион — главная">
-        <span class="brand-mark"><span></span><span></span><span></span></span>
-        <span class="brand-name">АУКЦИОН<span class="brand-dot">.</span></span>
+      <a class="brand" href="/" aria-label="Аукцион — меню">
+        <span class="brand-suits" aria-hidden="true"><b>♠</b><i>♦</i><em>♣</em><strong>♥</strong></span>
+        <span class="brand-name">АУКЦИОН<span>.</span></span>
       </a>
-      <div class="online-indicator"><i></i><span id="connectionLabel">Подключение к серверу</span></div>
+      <div class="topbar-actions">
+        <div class="online-indicator"><i></i><span id="connectionLabel">Подключение</span></div>
+        <button id="fullscreenBtn" class="fullscreen-btn" type="button" aria-label="Включить полноэкранный режим" title="Во весь экран"><span class="fullscreen-glyph">⛶</span><span id="fullscreenLabel">Во весь экран</span></button>
+      </div>
     </header>
 
     <section id="homeScreen" class="screen home-screen">
-      <div class="hero">
-        <div class="eyebrow"><span class="eyebrow-line"></span> МУЛЬТИПЛЕЕРНАЯ ЭКОНОМИЧЕСКАЯ ИГРА</div>
-        <h1>ТВОЙ СЛЕДУЮЩИЙ<br><span>ХОД — СТАВКА.</span></h1>
-        <p class="hero-copy">Покупай предметы на закрытых торгах, оценивай их истинную стоимость и собери коллекцию, которая принесёт больше всех денег.</p>
-        <div class="hero-stats">
-          <div><strong>03—06</strong><span>ИГРОКОВ</span></div>
-          <div class="stat-divider"></div>
-          <div><strong>05</strong><span>РАУНДОВ</span></div>
-          <div class="stat-divider"></div>
-          <div><strong>₵5 000</strong><span>СТАРТОВЫЙ КАПИТАЛ</span></div>
-        </div>
-      </div>
+      <div class="home-mark" aria-hidden="true"><span>♠</span><span>♦</span><span>♣</span><span>♥</span></div>
+      <div class="home-kicker">ЗАКРЫТЫЙ АУКЦИОН</div>
+      <h1>АУКЦИОН</h1>
+      <div class="home-rule"><span></span><b>♣</b><span></span></div>
+      <p class="home-subtitle">Ставь. Выигрывай. Забирай банк.</p>
+
       <section class="entry-card">
-        <div class="card-head"><span class="section-index">01 / ПОДКЛЮЧЕНИЕ</span><span class="card-sub">СОЗДАЙ СВОЮ КОМНАТУ</span></div>
-        <label class="field-label" for="playerName">ТВОЁ ИМЯ</label>
-        <input id="playerName" class="text-input" type="text" maxlength="18" autocomplete="nickname" placeholder="Например, Марк" value="">
-        <button id="createRoomBtn" class="btn btn-primary"><span>Создать лобби</span><span class="btn-icon">↗</span></button>
+        <label class="field-label" for="playerName">ИМЯ ИГРОКА</label>
+        <input id="playerName" class="text-input" type="text" maxlength="18" autocomplete="nickname" placeholder="Введи имя">
+        <button id="createRoomBtn" class="btn btn-primary"><span>Создать стол</span><span class="btn-icon">♠</span></button>
         <div class="splitter"><span></span><em>ИЛИ</em><span></span></div>
-        <label class="field-label" for="roomCode">КОД КОМНАТЫ</label>
+        <label class="field-label" for="roomCode">КОД ПРИГЛАШЕНИЯ</label>
         <div class="join-row"><input id="roomCode" class="text-input code-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="A7K2Q"><button id="joinRoomBtn" class="btn btn-secondary">Войти</button></div>
-        <p class="form-note">Создатель приглашает друзей кодом. Когда будет 3–6 игроков, можно начинать.</p>
       </section>
-      <div class="feature-strip"><div class="feature-icon">⌁</div><div><strong>Честные торги</strong><span>Ставки проверяет сервер</span></div><div class="feature-icon">◈</div><div><strong>Никаких NPC</strong><span>Только реальные игроки</span></div></div>
+      <div class="home-bottom"><span>3–6 ИГРОКОВ</span><i></i><span>5 РАУНДОВ</span><i></i><span>ОДИН ПОБЕДИТЕЛЬ</span></div>
     </section>
 
     <section id="lobbyScreen" class="screen lobby-screen hidden">
-      <div class="screen-title-row"><div><div class="eyebrow"><span class="eyebrow-line"></span> КОМНАТА ОЖИДАНИЯ</div><h2>СОБИРАЕМСЯ<br>ЗА СТОЛОМ.</h2></div><button id="leaveRoomBtn" class="btn btn-quiet">Выйти ↗</button></div>
-      <section class="room-banner"><div><span class="section-index">КОД ПРИГЛАШЕНИЯ</span><div class="room-code-wrap"><strong id="roomCodeDisplay">-----</strong><button id="copyCodeBtn" class="copy-btn" aria-label="Скопировать код">⧉</button></div><p>Поделись кодом с друзьями.</p></div><div class="room-count"><strong id="playerCount">1</strong><span>/ 6<br>ИГРОКОВ</span></div></section>
-      <section class="panel"><div class="panel-head"><span>УЧАСТНИКИ</span><span id="readyCount" class="muted">0 / 3 минимум</span></div><div id="playerList" class="player-list"></div><div id="waitHint" class="wait-hint">Ждём остальных. Для старта нужны минимум 3 игрока.</div></section>
-      <section class="lobby-bottom"><div class="rules-mini"><span class="section-index">КАК ИГРАТЬ</span><p>В каждом раунде выбирай 1 из 3 лотов и указывай ставку. Победившие лоты останутся у тебя до конца матча.</p></div><div class="lobby-actions"><button id="readyBtn" class="btn btn-secondary ready-btn"><span>Я готов</span><span class="btn-icon">✓</span></button><button id="startMatchBtn" class="btn btn-primary ready-btn hidden"><span>Начать матч</span><span class="btn-icon">↗</span></button></div></section>
-      <p id="hostHint" class="host-hint">Создатель комнаты сможет запустить матч, когда все игроки будут готовы.</p>
+      <div class="screen-title-row"><div><div class="eyebrow"><span>♠</span> ЗАКРЫТЫЙ СТОЛ</div><h2>СОБИРАЕМ ИГРОКОВ</h2></div><button id="leaveRoomBtn" class="btn btn-quiet">Выйти</button></div>
+      <section class="room-banner"><div><span class="section-index">КОД ПРИГЛАШЕНИЯ</span><div class="room-code-wrap"><strong id="roomCodeDisplay">-----</strong><button id="copyCodeBtn" class="copy-btn" aria-label="Скопировать код">⧉</button></div></div><div class="room-count"><strong id="playerCount">1</strong><span>/ 6<br>ИГРОКОВ</span></div></section>
+      <section class="panel"><div class="panel-head"><span>УЧАСТНИКИ</span><span id="readyCount" class="muted">0 готовы</span></div><div id="playerList" class="player-list"></div><div id="waitHint" class="wait-hint">Для начала нужны 3 игрока.</div></section>
+      <section class="lobby-bottom"><div class="rules-mini"><span class="section-index">ПРАВИЛА</span><p>В каждом раунде выбери один из трёх лотов. Победившие лоты остаются у тебя до конца матча и продаются автоматически после финального раунда.</p></div><div class="lobby-actions"><button id="readyBtn" class="btn btn-secondary ready-btn"><span>Я готов</span><span class="btn-icon">✓</span></button><button id="startMatchBtn" class="btn btn-primary ready-btn hidden"><span>Начать матч</span><span class="btn-icon">♠</span></button></div></section>
+      <p id="hostHint" class="host-hint">Создатель стола запускает матч после готовности всех участников.</p>
     </section>
 
     <section id="gameScreen" class="screen game-screen hidden">
-      <div class="game-top"><div><div class="eyebrow"><span class="eyebrow-line"></span><span id="phaseLabel">РАУНД 1</span></div><h2 id="gameTitle">ВЫБЕРИ СВОЙ ЛОТ.</h2></div><div class="round-badge"><span>РАУНД</span><strong id="roundNumber">01</strong><small>/ 05</small></div></div>
+      <div class="game-top"><div><div class="eyebrow"><span>♠</span> <span id="phaseLabel">РАУНД 1</span></div><h2 id="gameTitle">ВЫБЕРИ ЛОТ</h2></div><div class="round-badge"><span>РАУНД</span><strong id="roundNumber">01</strong><small>/ 05</small></div></div>
       <div class="game-meta"><span id="balanceLabel">Баланс: 5 000 ₵</span><span id="inventoryLabel">Коллекция: 0</span></div>
-      <p id="gameInstruction" class="game-instruction">Выбери один из трёх лотов и сделай ставку. Самая высокая ставка выигрывает предмет.</p>
+      <p id="gameInstruction" class="game-instruction">Выбери один из трёх лотов и сделай ставку.</p>
       <div id="lotGrid" class="lot-grid"></div>
-      <section id="bidPanel" class="bid-panel hidden"><div class="bid-panel-title"><span class="section-index">ТВОЯ СТАВКА</span><span id="minimumBidLabel" class="muted">Минимум: 300 ₵</span></div><div class="bid-row"><div class="bid-input-wrap"><input id="bidAmount" type="number" min="300" step="10" inputmode="numeric" class="text-input bid-input"><span>₵</span></div><button id="submitBidBtn" class="btn btn-primary">Подтвердить ставку <span class="btn-icon">↗</span></button></div><p id="bidStatus" class="bid-status">Ставка скрыта от других игроков до закрытия раунда.</p></section>
-      <section id="revealPanel" class="reveal-panel hidden"><div class="panel-head"><span>ИТОГИ РАУНДА</span><span id="roundOutcomeLabel" class="muted"></span></div><div id="roundOutcomeList" class="outcome-list"></div><div class="next-round-note">Следующий раунд начнётся автоматически.</div></section>
-      <section class="inventory-panel"><div class="panel-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><span id="inventoryCount" class="muted">0 предметов</span></div><div id="inventoryList" class="inventory-list"><div class="inventory-empty">Пока нет предметов. Выиграй первый лот.</div></div></section>
+      <section id="bidPanel" class="bid-panel hidden"><div class="bid-panel-title"><span class="section-index">ТВОЯ СТАВКА</span><span id="minimumBidLabel" class="muted">Минимум: 300 ₵</span></div><div class="bid-row"><div class="bid-input-wrap"><input id="bidAmount" type="number" min="300" step="10" inputmode="numeric" class="text-input bid-input"><span>₵</span></div><button id="submitBidBtn" class="btn btn-primary">Подтвердить ставку <span class="btn-icon">♠</span></button></div><p id="bidStatus" class="bid-status">Ставка скрыта до конца раунда.</p></section>
+      <section id="revealPanel" class="reveal-panel hidden"><div class="panel-head"><span>ИТОГИ РАУНДА</span><span id="roundOutcomeLabel" class="muted"></span></div><div id="roundOutcomeList" class="outcome-list"></div><div class="next-round-note">Следующий раунд скоро начнётся.</div></section>
+      <section class="inventory-panel"><div class="panel-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><span id="inventoryCount" class="muted">0 предметов</span></div><div id="inventoryList" class="inventory-list"><div class="inventory-empty">Здесь появятся выигранные лоты.</div></div></section>
     </section>
 
     <section id="resultsScreen" class="screen results-screen hidden">
-      <div class="eyebrow"><span class="eyebrow-line"></span> МАТЧ ЗАВЕРШЁН</div>
-      <h2 id="resultsTitle">ИТОГИ<br><span>ТОРГОВ.</span></h2>
-      <p class="hero-copy results-copy">Все предметы автоматически проданы по итоговой стоимости. Победитель определяется по чистой прибыли.</p>
+      <div class="eyebrow"><span>♠</span> МАТЧ ЗАВЕРШЁН</div>
+      <h2 id="resultsTitle">ИТОГИ ТОРГОВ</h2>
+      <p class="results-copy">Предметы автоматически проданы. Победитель определяется по чистой прибыли.</p>
       <div id="winnerBanner" class="winner-banner"></div>
-      <section class="panel"><div class="panel-head"><span>ТАБЛИЦА РЕЗУЛЬТАТОВ</span><span class="muted">ПО ЧИСТОЙ ПРИБЫЛИ</span></div><div id="resultsList" class="results-list"></div></section>
-      <button id="nextMatchBtn" class="btn btn-primary next-match-btn"><span>Сыграть ещё раз</span><span class="btn-icon">↗</span></button>
+      <section class="panel"><div class="panel-head"><span>РЕЗУЛЬТАТЫ</span><span class="muted">ЧИСТАЯ ПРИБЫЛЬ</span></div><div id="resultsList" class="results-list"></div></section>
+      <button id="nextMatchBtn" class="btn btn-primary next-match-btn"><span>Сыграть ещё раз</span><span class="btn-icon">♠</span></button>
       <button id="backToHomeBtn" class="btn btn-quiet back-home-btn">В меню</button>
     </section>
-
-    <footer class="footer"><span>АУКЦИОН / ONLINE</span><span>СОБЕРИ СВОЮ ПРИБЫЛЬ</span><span>v0.1.0</span></footer>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/client.js"></script>
