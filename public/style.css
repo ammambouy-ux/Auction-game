@@ -294,3 +294,67 @@ body::after {
   .entry-card { padding-top: 19px; padding-bottom: 20px; }
   .home-bottom { margin-top: 14px; }
 }
+
+
+/* Cinematic opening sequence */
+.intro-screen {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(38, 103, 65, .52) 0, transparent 39%),
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, .48) 0, transparent 60%),
+    repeating-linear-gradient(118deg, rgba(255,255,255,.013) 0 1px, transparent 1px 5px),
+    linear-gradient(135deg, #0d3827 0%, #061e15 58%, #04150e 100%);
+  opacity: 1; visibility: visible;
+}
+.intro-screen.is-leaving { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .72s ease, visibility .72s ease; }
+.intro-screen.is-gone { display: none; }
+.intro-halo { position: absolute; width: min(70vw, 560px); aspect-ratio: 1; border: 1px solid rgba(215,182,111,.1); border-radius: 50%; pointer-events: none; }
+.intro-halo::before, .intro-halo::after { content: ''; position: absolute; inset: 8%; border: 1px solid rgba(215,182,111,.07); border-radius: 50%; }
+.intro-halo::after { inset: 17%; border-color: rgba(215,182,111,.06); }
+.intro-halo-one { animation: intro-halo-in 1.5s ease-out both; }
+.intro-halo-two { width: min(90vw, 760px); border-style: dashed; border-color: rgba(215,182,111,.045); animation: intro-orbit 18s linear infinite; }
+.intro-content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; width: min(92vw, 540px); padding: 30px 0; }
+.intro-cards { height: clamp(105px, 19vh, 160px); width: 200px; position: relative; margin: 0 auto 24px; perspective: 900px; }
+.intro-card {
+  position: absolute; top: 0; width: clamp(72px, 15vw, 100px); height: clamp(102px, 19vh, 142px);
+  display: flex; flex-direction: column; justify-content: space-between; padding: 10px 11px;
+  border: 1px solid #f3e3bc; border-radius: 7px;
+  background: linear-gradient(145deg,#fff9e9,#d7c9a3);
+  box-shadow: 0 16px 34px rgba(0,0,0,.28), inset 0 0 0 3px rgba(20,51,34,.05);
+  color: #173824; font: 600 24px/1 'Playfair Display', Georgia, serif; opacity: 0;
+}
+.intro-card span { font: 700 16px/1 'Playfair Display', Georgia, serif; align-self: flex-start; }
+.intro-card b { font: 400 49px/1 'Playfair Display', Georgia, serif; align-self: center; margin-top: -15px; }
+.intro-card-left { left: 22px; transform-origin: 90% 95%; animation: intro-card-left .88s cubic-bezier(.2,.75,.25,1.08) .15s forwards; }
+.intro-card-right { right: 22px; color: #b74f4b; transform-origin: 10% 95%; animation: intro-card-right .88s cubic-bezier(.2,.75,.25,1.08) .34s forwards; }
+.intro-card-left span { transform: rotate(180deg); align-self: flex-end; }
+.intro-card-right span { align-self: flex-start; }
+.intro-kicker { margin-top: 2px; color: var(--gold); font-size: 9px; font-weight: 800; letter-spacing: .28em; opacity: 0; animation: intro-reveal .65s ease .72s forwards; }
+.intro-title { margin-top: 11px; color: #faf2df; font: 700 clamp(44px, 9vw, 76px)/1.12 'Playfair Display', Georgia, serif; letter-spacing: .19em; padding-left: .19em; text-shadow: 0 6px 24px rgba(0,0,0,.25); opacity: 0; animation: intro-title-in .9s cubic-bezier(.18,.78,.22,1) .75s forwards; }
+.intro-title span { color: var(--gold); }
+.intro-divider { width: 164px; display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 17px; color: var(--gold); opacity: 0; animation: intro-reveal .6s ease 1.25s forwards; }
+.intro-divider i { height: 1px; flex: 1; background: linear-gradient(90deg, transparent, var(--gold)); }
+.intro-divider i:last-child { background: linear-gradient(90deg, var(--gold), transparent); }
+.intro-divider b { font-size: 13px; font-weight: 400; }
+.intro-tagline { margin-top: 17px; color: #c6d4c6; font-size: 9px; font-weight: 800; letter-spacing: .32em; opacity: 0; animation: intro-reveal .65s ease 1.42s forwards; }
+.intro-skip { position: absolute; z-index: 2; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); padding: 9px 11px; border: 1px solid rgba(215,182,111,.3); border-radius: 4px; color: #c6d4c6; background: rgba(0,0,0,.1); font: 700 9px var(--font); letter-spacing: .08em; cursor: pointer; opacity: 0; animation: intro-reveal .4s ease 1.5s forwards; }
+.intro-skip:hover { border-color: var(--gold); color: var(--gold-light); }
+.intro-skip span { margin-left: 7px; color: var(--gold); font-size: 13px; }
+.intro-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(215,182,111,.09); overflow: hidden; }
+.intro-progress span { display: block; width: 0; height: 100%; background: var(--gold); box-shadow: 0 0 12px rgba(215,182,111,.8); animation: intro-progress 3.25s linear forwards; }
+@keyframes intro-card-left { 0% { opacity: 0; transform: translate(-85px,56px) rotate(-28deg) scale(.8); } 75% { opacity: 1; transform: translate(7px,-3px) rotate(-10deg) scale(1.03); } 100% { opacity: 1; transform: translate(0,0) rotate(-10deg) scale(1); } }
+@keyframes intro-card-right { 0% { opacity: 0; transform: translate(85px,56px) rotate(28deg) scale(.8); } 75% { opacity: 1; transform: translate(-7px,-3px) rotate(10deg) scale(1.03); } 100% { opacity: 1; transform: translate(0,0) rotate(10deg) scale(1); } }
+@keyframes intro-halo-in { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+@keyframes intro-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes intro-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes intro-title-in { 0% { opacity: 0; transform: translateY(14px); letter-spacing: .3em; } 100% { opacity: 1; transform: translateY(0); letter-spacing: .19em; } }
+@keyframes intro-progress { from { width: 0; } to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .intro-card-left, .intro-card-right, .intro-halo-one, .intro-halo-two, .intro-kicker, .intro-title, .intro-divider, .intro-tagline, .intro-skip, .intro-progress span { animation-duration: .01ms !important; animation-delay: 0ms !important; }
+  .intro-screen.is-leaving { transition-duration: .01ms; }
+}
+@media (max-width: 480px) {
+  .intro-kicker { font-size: 7px; letter-spacing: .2em; }
+  .intro-title { font-size: clamp(39px, 11vw, 56px); }
+  .intro-tagline { font-size: 8px; letter-spacing: .25em; }
+}
