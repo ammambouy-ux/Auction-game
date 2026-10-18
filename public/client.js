@@ -67,6 +67,25 @@ async function toggleFullscreen() {
   syncFullscreenButton();
 }
 
+function startIntroAnimation() {
+  const intro = $('introScreen');
+  if (!intro) return;
+  let finished = false;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  let timer;
+  const dismiss = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timer);
+    intro.classList.add('is-leaving');
+    const cleanup = () => intro.classList.add('is-gone');
+    intro.addEventListener('transitionend', cleanup, { once: true });
+    window.setTimeout(cleanup, reducedMotion ? 30 : 850);
+  };
+  $('skipIntroBtn')?.addEventListener('click', dismiss, { once: true });
+  timer = window.setTimeout(dismiss, reducedMotion ? 850 : 3300);
+}
+
 document.addEventListener('fullscreenchange', syncFullscreenButton);
 document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 function makeSocket() {
@@ -251,6 +270,7 @@ $('backToHomeBtn').addEventListener('click', () => {
 
 setConnection(false, 'Подключение');
 syncFullscreenButton();
+startIntroAnimation();
 // Rejoin a room after refresh when a room code was saved in this browser.
 const savedCode = sessionStorage.getItem('auctionRoomCode');
 if (savedCode && state.playerId) {
