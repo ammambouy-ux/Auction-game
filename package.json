@@ -1,0 +1,19 @@
+{
+  "name": "auction-game-online",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser multiplayer auction game for 3-6 players",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.3"
+  }
+}
