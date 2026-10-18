@@ -16,6 +16,22 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div id="introScreen" class="intro-screen" role="status" aria-label="Аукцион загружается">
+    <div class="intro-halo intro-halo-one"></div>
+    <div class="intro-halo intro-halo-two"></div>
+    <div class="intro-content">
+      <div class="intro-cards" aria-hidden="true">
+        <div class="intro-card intro-card-left"><span>A</span><b>♠</b></div>
+        <div class="intro-card intro-card-right"><span>A</span><b>♦</b></div>
+      </div>
+      <div class="intro-kicker">ЗАКРЫТЫЙ СТОЛ · 3—6 ИГРОКОВ</div>
+      <div class="intro-title">АУКЦИОН<span>.</span></div>
+      <div class="intro-divider"><i></i><b>♣</b><i></i></div>
+      <div class="intro-tagline">СДЕЛАЙ СВОЮ СТАВКУ</div>
+    </div>
+    <button id="skipIntroBtn" class="intro-skip" type="button">Пропустить <span>↗</span></button>
+    <div class="intro-progress" aria-hidden="true"><span></span></div>
+  </div>
   <div class="felt-grain" aria-hidden="true"></div>
   <main class="shell">
     <header class="topbar">
