@@ -59,6 +59,20 @@
         <div class="splitter"><span></span><em>ИЛИ</em><span></span></div>
         <label class="field-label" for="roomCode">КОД ПРИГЛАШЕНИЯ</label>
         <div class="join-row"><input id="roomCode" class="text-input code-input" maxlength="5" autocomplete="off" autocapitalize="characters" placeholder="A7K2Q"><button id="joinRoomBtn" class="btn btn-secondary">Войти</button></div>
+        <div class="practice-area">
+          <div class="practice-label">ОДИНОЧНЫЙ ТЕСТ</div>
+          <label class="field-label" for="botCount">КОЛИЧЕСТВО БОТОВ</label>
+          <div class="practice-controls">
+            <select id="botCount" class="text-input" aria-label="Количество ботов">
+              <option value="2">2 бота</option>
+              <option value="3" selected>3 бота</option>
+              <option value="4">4 бота</option>
+              <option value="5">5 ботов</option>
+            </select>
+            <button id="startPracticeBtn" class="btn btn-secondary practice-start"><span>Тест с ботами</span><span class="btn-icon">♣</span></button>
+          </div>
+          <p class="practice-note">Отдельный матч. Боты сами выбирают лоты и делают ставки.</p>
+        </div>
       </section>
       <div class="home-bottom"><span>3–6 ИГРОКОВ</span><i></i><span>5 РАУНДОВ</span><i></i><span>ОДИН ПОБЕДИТЕЛЬ</span></div>
     </section>
@@ -72,7 +86,7 @@
     </section>
 
     <section id="gameScreen" class="screen game-screen hidden">
-      <div class="game-top"><div><div class="eyebrow"><span>♠</span> <span id="phaseLabel">РАУНД 1</span></div><h2 id="gameTitle">ВЫБЕРИ ЛОТ</h2></div><div class="round-badge"><span>РАУНД</span><strong id="roundNumber">01</strong><small>/ 05</small></div></div>
+      <div class="game-top"><div><div class="eyebrow"><span>♠</span> <span id="phaseLabel">РАУНД 1</span><span id="modeBadge" class="mode-badge hidden">ТЕСТ С БОТАМИ</span></div><h2 id="gameTitle">ВЫБЕРИ ЛОТ</h2></div><div class="round-badge"><span>РАУНД</span><strong id="roundNumber">01</strong><small>/ 05</small></div></div>
       <div class="game-meta"><span id="balanceLabel">Баланс: 5 000 ₵</span><span id="inventoryLabel">Коллекция: 0</span></div>
       <p id="gameInstruction" class="game-instruction">Выбери один из трёх лотов и сделай ставку.</p>
       <div id="lotGrid" class="lot-grid"></div>

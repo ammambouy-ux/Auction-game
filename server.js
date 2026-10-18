@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { WebSocketServer } from 'ws';
-import { createRoom, joinRoom, toggleReady, startMatch, submitChoice, nextMatch, handleDisconnect, sendError, broadcastRoom } from './src/rooms.js';
+import { createRoom, createPracticeRoom, joinRoom, toggleReady, startMatch, submitChoice, nextMatch, handleDisconnect, sendError, broadcastRoom } from './src/rooms.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -32,6 +32,14 @@ wss.on('connection', (ws) => {
           currentRoom = created.room; currentPlayer = created.player;
           ws.send(JSON.stringify({ type: 'identity', playerId: currentPlayer.id, roomCode: currentRoom.code }));
           broadcastRoom(currentRoom);
+          break;
+        }
+        case 'createPracticeRoom': {
+          if (currentRoom) throw new Error('Ты уже находишься в комнате.');
+          const created = createPracticeRoom(ws, message.name, message.playerId, message.botCount);
+          currentRoom = created.room; currentPlayer = created.player;
+          ws.send(JSON.stringify({ type: 'identity', playerId: currentPlayer.id, roomCode: currentRoom.code, practice: true }));
+          startMatch(currentRoom, currentPlayer);
           break;
         }
         case 'joinRoom': {

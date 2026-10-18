@@ -12,6 +12,14 @@ const createCode = () => {
   return Array.from({ length: 5 }, () => alphabet[crypto.randomInt(alphabet.length)]).join('');
 };
 
+const BOT_PROFILES = [
+  { name: 'Туз', style: 'Осторожный', strategy: 'careful' },
+  { name: 'Фортуна', style: 'Расчётливый', strategy: 'calculated' },
+  { name: 'Валет', style: 'Агрессивный', strategy: 'aggressive' },
+  { name: 'Блеф', style: 'Рискованный', strategy: 'risky' },
+  { name: 'Джокер', style: 'Непредсказуемый', strategy: 'chaotic' }
+];
+
 function roomFor(code) {
   const room = rooms.get(String(code ?? '').toUpperCase());
   if (!room) throw new Error('Комната не найдена. Проверь код.');
@@ -26,6 +34,7 @@ function publicRoom(room, viewerId) {
   const viewer = playerFor(room, viewerId);
   return {
     code: room.code,
+    mode: room.mode || 'online',
     phase: room.phase,
     hostId: room.hostId,
     round: room.round,
@@ -33,7 +42,7 @@ function publicRoom(room, viewerId) {
     players: [...room.players.values()].map((p) => ({
       id: p.id, name: p.name, ready: p.ready, online: p.online,
       cash: p.cash, itemCount: p.inventory.length,
-      isHost: p.id === room.hostId
+      isHost: p.id === room.hostId, isBot: Boolean(p.isBot), botStyle: p.botStyle || null
     })),
     currentLots: room.phase === 'choosing'
       ? room.currentLots.map(({ marketValue, ...lot }) => lot)
@@ -68,11 +77,44 @@ export function createRoom(ws, rawName, rawPlayerId) {
   const player = { id: playerId, name: cleanName(rawName), ws, online: true, ready: false, cash: STARTING_CASH, inventory: [], choice: null, spent: 0 };
   const room = {
     code, hostId: playerId, players: new Map([[playerId, player]]), phase: 'lobby', round: 0,
-    currentLots: [], lastOutcome: null, results: null, roundTimer: null, cleanupTimer: null, createdAt: Date.now()
+    currentLots: [], mode: 'online', botTimers: new Set(), lastOutcome: null, results: null,
+    roundTimer: null, cleanupTimer: null, createdAt: Date.now()
   };
   rooms.set(code, room);
   player.ws = ws;
   return { room, player };
+}
+
+export function createPracticeRoom(ws, rawName, rawPlayerId, rawBotCount) {
+  const botCount = Number(rawBotCount);
+  if (!Number.isInteger(botCount) || botCount < 2 || botCount > 5) {
+    throw new Error('Для теста выбери от 2 до 5 ботов.');
+  }
+  const created = createRoom(ws, rawName, rawPlayerId);
+  const { room, player } = created;
+  room.mode = 'practice';
+  player.ready = true;
+
+  const profiles = [...BOT_PROFILES].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < botCount; i += 1) {
+    const profile = profiles[i];
+    const bot = {
+      id: `bot-${createId()}`,
+      name: profile.name,
+      ws: null,
+      online: true,
+      ready: true,
+      cash: STARTING_CASH,
+      inventory: [],
+      choice: null,
+      spent: 0,
+      isBot: true,
+      botStyle: profile.style,
+      botStrategy: profile.strategy
+    };
+    room.players.set(bot.id, bot);
+  }
+  return created;
 }
 
 export function joinRoom(ws, rawCode, rawName, rawPlayerId) {
@@ -104,6 +146,7 @@ export function toggleReady(room, player) {
 
 export function startMatch(room, player) {
   if (player.id !== room.hostId) throw new Error('Начать матч может только создатель комнаты.');
+  clearBotTimers(room);
   if (room.phase !== 'lobby') throw new Error('Матч уже запущен.');
   if (room.players.size < MIN_PLAYERS) throw new Error('Нужно минимум 3 игрока.');
   if ([...room.players.values()].some((p) => !p.ready)) throw new Error('Все игроки должны нажать «Готов».');
@@ -128,6 +171,7 @@ function beginRound(room) {
   emitRoom(room);
   if (room.roundTimer) clearTimeout(room.roundTimer);
   room.roundTimer = setTimeout(() => resolveRound(room), 45000);
+  scheduleBotChoices(room);
 }
 
 export function submitChoice(room, player, rawLotId, rawBid) {
@@ -141,16 +185,17 @@ export function submitChoice(room, player, rawLotId, rawBid) {
   if (bid > player.cash) throw new Error('Ставка превышает твой баланс.');
   player.choice = { lotId: lot.lotId, bid, submittedAt: Date.now() };
   emitRoom(room);
-  if ([...room.players.values()].every((p) => !p.online || p.choice)) resolveRound(room);
+  if (allPlayersSubmitted(room)) resolveRound(room);
 }
 
 function resolveRound(room) {
   if (room.phase !== 'choosing') return;
   if (room.roundTimer) { clearTimeout(room.roundTimer); room.roundTimer = null; }
+  clearBotTimers(room);
   room.phase = 'revealing';
   const winners = [];
   const losers = [];
-  const bids = [...room.players.values()].filter((p) => p.choice).sort((a, b) => b.choice.bid - a.choice.bid || a.choice.submittedAt - b.choice.submittedAt);
+  const bids = [...room.players.values()].filter((p) => p.choice && !p.choice.pass).sort((a, b) => b.choice.bid - a.choice.bid || a.choice.submittedAt - b.choice.submittedAt);
   const awardedPlayers = new Set();
   for (const lot of room.currentLots) {
     const candidates = bids.filter((p) => p.choice.lotId === lot.lotId && !awardedPlayers.has(p.id));
@@ -167,7 +212,7 @@ function resolveRound(room) {
     }
   }
   for (const player of room.players.values()) {
-    if (player.choice && !awardedPlayers.has(player.id) && !losers.some((l) => l.playerId === player.id)) {
+    if (player.choice && !player.choice.pass && !awardedPlayers.has(player.id) && !losers.some((l) => l.playerId === player.id)) {
       losers.push({ playerId: player.id, playerName: player.name, lotName: room.currentLots.find((l) => l.lotId === player.choice.lotId)?.name ?? 'Предмет', bid: player.choice.bid });
     }
     player.choice = null;
@@ -179,6 +224,76 @@ function resolveRound(room) {
     if (room.round >= TOTAL_ROUNDS) finishMatch(room);
     else { room.round += 1; beginRound(room); }
   }, 6500);
+}
+
+function clearBotTimers(room) {
+  if (!room.botTimers) room.botTimers = new Set();
+  for (const timer of room.botTimers) clearTimeout(timer);
+  room.botTimers.clear();
+}
+
+function allPlayersSubmitted(room) {
+  return [...room.players.values()].every((p) => !p.online || p.choice);
+}
+
+function botDecision(room, bot) {
+  const affordable = room.currentLots.filter((lot) => lot.startPrice <= bot.cash);
+  if (!affordable.length) return null;
+
+  const ranked = affordable.map((lot) => ({
+    lot,
+    score: lot.marketValue - lot.startPrice + (Math.random() - 0.5) * 240
+  })).sort((a, b) => b.score - a.score);
+
+  const shortlistSize = Math.min(ranked.length, Math.random() < 0.72 ? 2 : ranked.length);
+  const lot = ranked[Math.floor(Math.random() * shortlistSize)].lot;
+  const upside = Math.max(0, lot.marketValue - lot.startPrice);
+  let bid;
+
+  switch (bot.botStrategy) {
+    case 'careful':
+      bid = lot.startPrice + upside * (0.12 + Math.random() * 0.24);
+      break;
+    case 'calculated':
+      bid = lot.startPrice + upside * (0.30 + Math.random() * 0.34);
+      break;
+    case 'aggressive':
+      bid = lot.startPrice + upside * (0.62 + Math.random() * 0.42);
+      break;
+    case 'risky':
+      bid = lot.startPrice + upside * (0.35 + Math.random() * 0.55);
+      if (Math.random() < 0.28) bid = Math.max(bid, lot.marketValue + 30 + Math.floor(Math.random() * 140));
+      break;
+    default:
+      bid = lot.startPrice + Math.random() * Math.max(120, Math.min(650, bot.cash - lot.startPrice));
+      if (Math.random() < 0.18) bid += 100 + Math.random() * 220;
+      break;
+  }
+
+  bid = Math.round(bid / 10) * 10;
+  bid = Math.min(bot.cash, Math.max(lot.startPrice, bid));
+  return { lotId: lot.lotId, bid };
+}
+
+function scheduleBotChoices(room) {
+  if (room.mode !== 'practice') return;
+  const bots = [...room.players.values()].filter((p) => p.isBot && p.online && !p.choice);
+  bots.forEach((bot, index) => {
+    const delay = 450 + Math.random() * 1300 + index * 160;
+    const timer = setTimeout(() => {
+      room.botTimers.delete(timer);
+      if (room.phase !== 'choosing' || bot.choice) return;
+      const decision = botDecision(room, bot);
+      if (decision) {
+        submitChoice(room, bot, decision.lotId, decision.bid);
+      } else {
+        bot.choice = { pass: true, lotId: null, bid: 0, submittedAt: Date.now() };
+        emitRoom(room);
+        if (allPlayersSubmitted(room)) resolveRound(room);
+      }
+    }, delay);
+    room.botTimers.add(timer);
+  });
 }
 
 function finishMatch(room) {
@@ -210,12 +325,24 @@ function finishMatch(room) {
 export function nextMatch(room, player) {
   if (player.id !== room.hostId) throw new Error('Новый матч может начать только создатель комнаты.');
   if (room.phase !== 'results') throw new Error('Текущий матч ещё не завершён.');
+  clearBotTimers(room);
   room.phase = 'lobby';
   room.round = 0;
   room.currentLots = [];
   room.results = null;
   room.lastOutcome = null;
-  for (const p of room.players.values()) { p.ready = false; p.cash = STARTING_CASH; p.inventory = []; p.spent = 0; p.choice = null; }
+  const practiceMode = room.mode === 'practice';
+  for (const p of room.players.values()) {
+    p.ready = practiceMode;
+    p.cash = STARTING_CASH;
+    p.inventory = [];
+    p.spent = 0;
+    p.choice = null;
+  }
+  if (practiceMode) {
+    startMatch(room, player);
+    return;
+  }
   emitRoom(room);
 }
 
@@ -228,8 +355,10 @@ export function handleDisconnect(room, player) {
     if (nextHost) room.hostId = nextHost.id;
   }
   emitRoom(room);
-  if ([...room.players.values()].every((p) => !p.online)) {
+  const realPlayers = [...room.players.values()].filter((p) => !p.isBot);
+  if (realPlayers.every((p) => !p.online)) {
     if (room.roundTimer) clearTimeout(room.roundTimer);
+    clearBotTimers(room);
     room.cleanupTimer = setTimeout(() => rooms.delete(room.code), ROOM_TTL_MS);
     return;
   }

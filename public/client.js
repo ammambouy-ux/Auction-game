@@ -102,6 +102,7 @@ function makeSocket() {
       localStorage.setItem('auctionPlayerId', state.playerId);
       sessionStorage.setItem('auctionRoomCode', state.roomCode);
       if (message.resumed) toast('Подключение к комнате восстановлено');
+      else if (message.practice) toast('Тестовый матч запущен. Боты делают ставки автоматически.');
       return;
     }
     if (message.type === 'state') { state.room = message.state; renderState(); return; }
@@ -141,6 +142,16 @@ function createRoom() {
   const create = () => ws.send(JSON.stringify({ type: 'createRoom', name, playerId: state.playerId }));
   if (ws.readyState === WebSocket.OPEN) create(); else ws.addEventListener('open', create, { once: true });
 }
+function startPractice() {
+  const name = getName(); if (!name) return;
+  requestFullscreenFromGesture();
+  state.chosenLot = null;
+  const botCount = Number($('botCount').value);
+  const ws = makeSocket();
+  const create = () => ws.send(JSON.stringify({ type: 'createPracticeRoom', name, playerId: state.playerId, botCount }));
+  if (ws.readyState === WebSocket.OPEN) create(); else ws.addEventListener('open', create, { once: true });
+}
+
 function joinRoom() {
   const name = getName(); if (!name) return;
   requestFullscreenFromGesture();
@@ -157,7 +168,7 @@ function renderState() {
   $('roomCodeDisplay').textContent = room.code;
   $('playerCount').textContent = room.players.length;
   $('readyCount').textContent = `${room.players.filter(p => p.ready).length} / ${room.players.length} готовы`;
-  $('playerList').innerHTML = room.players.map((p, i) => `<div class="player-row"><div class="player-avatar">${esc((p.name || '?').slice(0,1).toUpperCase())}</div><div class="player-info"><strong>${esc(p.name)}${p.id === state.playerId ? ' (ты)' : ''}</strong><span>${p.isHost ? 'Создатель комнаты' : (p.online ? 'В игре' : 'Переподключение…')}</span></div><div class="player-status ${p.ready ? 'ready' : ''}">${p.ready ? '✓ Готов' : 'Ожидает'}</div></div>`).join('');
+  $('playerList').innerHTML = room.players.map((p, i) => `<div class="player-row"><div class="player-avatar">${esc((p.name || '?').slice(0,1).toUpperCase())}</div><div class="player-info"><strong>${esc(p.name)}${p.id === state.playerId ? ' (ты)' : ''}</strong><span>${p.isBot ? `Бот · ${esc(p.botStyle || 'ИИ')}` : p.isHost ? 'Создатель комнаты' : (p.online ? 'В игре' : 'Переподключение…')}</span></div><div class="player-status ${p.ready ? 'ready' : ''}">${p.ready ? '✓ Готов' : 'Ожидает'}</div></div>`).join('');
   const own = room.players.find(p => p.id === state.playerId);
   $('readyBtn').disabled = !own || room.phase !== 'lobby';
   $('readyBtn').querySelector('span:first-child').textContent = own?.ready ? 'Не готов' : 'Я готов';
@@ -174,6 +185,7 @@ function renderState() {
 function renderGame() {
   const room = state.room; const own = room.players.find(p => p.id === state.playerId);
   if (!own) return;
+  $('modeBadge').classList.toggle('hidden', room.mode !== 'practice');
   $('roundNumber').textContent = String(room.round).padStart(2, '0');
   $('phaseLabel').textContent = `РАУНД ${room.round} / ${room.totalRounds}`;
   $('balanceLabel').textContent = `Баланс: ${money(own.cash)}`;
@@ -182,7 +194,11 @@ function renderGame() {
   $('inventoryList').innerHTML = room.myInventory?.length ? room.myInventory.map(item => `<div class="inventory-chip"><span class="chip-symbol">${ITEM_SYMBOLS[item.itemId] || '◇'}</span><div><strong>${esc(item.name)}</strong><span>Куплен за ${money(item.purchasePrice)} · оценка ${money(item.marketValue)}</span></div></div>`).join('') : '<div class="inventory-empty">Пока нет предметов. Выиграй первый лот.</div>';
   const choosing = room.phase === 'choosing';
   $('gameTitle').textContent = choosing ? (room.myChoice ? 'СТАВКА ПРИНЯТА.' : 'ВЫБЕРИ СВОЙ ЛОТ.') : 'СТАВКИ ОТКРЫТЫ.';
-  $('gameInstruction').textContent = choosing ? (room.myChoice ? `Твоя ставка принята. Ждём остальных игроков (${room.choicesSubmitted} / ${room.players.filter(p => p.online).length}).` : 'Выбери один лот и укажи ставку. Ставки скрыты до завершения раунда; каждый игрок может выиграть максимум один лот за раунд.') : 'Раунд завершён. Победители ставок получили предметы в коллекцию.';
+  $('gameInstruction').textContent = choosing
+    ? (room.myChoice
+      ? `Твоя ставка принята. Ждём остальных игроков (${room.choicesSubmitted} / ${room.players.filter(p => p.online).length}).`
+      : `Выбери один лот и укажи ставку. Ставки скрыты до завершения раунда; каждый игрок может выиграть максимум один лот за раунд.${room.mode === 'practice' ? ' Боты сделают ставки автоматически.' : ''}`)
+    : 'Раунд завершён. Победители ставок получили предметы в коллекцию.';
   $('lotGrid').innerHTML = room.currentLots.map((lot, i) => {
     const selected = state.chosenLot === lot.lotId;
     const feature = lot.feature ? `<div class="feature-tag ${lot.feature.delta < 0 ? 'negative' : ''}">${esc(lot.feature.name)} · ${lot.feature.delta > 0 ? '+' : ''}${lot.feature.delta}</div>` : '<div class="feature-tag" style="background:rgba(255,255,255,.04);color:#8390a4">Без особенностей</div>';
@@ -241,6 +257,7 @@ function renderResults() {
 
 $('createRoomBtn').addEventListener('click', createRoom);
 $('joinRoomBtn').addEventListener('click', joinRoom);
+$('startPracticeBtn').addEventListener('click', startPractice);
 $('fullscreenBtn').addEventListener('click', toggleFullscreen);
 $('roomCode').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '').slice(0,5); });
 $('roomCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });

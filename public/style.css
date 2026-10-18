@@ -358,3 +358,43 @@ body::after {
   .intro-title { font-size: clamp(39px, 11vw, 56px); }
   .intro-tagline { font-size: 8px; letter-spacing: .25em; }
 }
+
+
+/* Standalone practice match with server-driven bidding bots */
+.practice-area {
+  margin-top: 20px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(215,182,111,.17);
+}
+.practice-label {
+  margin-bottom: 13px;
+  color: #8ea092;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+.practice-area .field-label { margin-bottom: 8px; }
+.practice-controls {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.25fr);
+  gap: 8px;
+}
+.practice-controls select { min-width: 0; padding: 0 10px; font-size: 11px; }
+.practice-start { min-width: 0; padding: 0 10px; gap: 7px; font-size: 9px; white-space: nowrap; }
+.practice-note { margin: 9px 0 0; color: #829487; font-size: 10px; line-height: 1.5; }
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border: 1px solid rgba(215,182,111,.4);
+  border-radius: 3px;
+  color: var(--gold-light);
+  background: rgba(215,182,111,.08);
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+@media (max-width: 420px) {
+  .practice-controls { grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr); gap: 6px; }
+  .practice-controls select { font-size: 10px; padding: 0 7px; }
+  .practice-start { font-size: 8px; padding: 0 7px; gap: 5px; }
+}
