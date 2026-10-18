@@ -22,6 +22,53 @@ function setConnection(connected, label) {
   $('connectionLabel').textContent = label;
   $('connectionLabel').parentElement.classList.toggle('connected', connected);
 }
+
+function syncFullscreenButton() {
+  const isFullscreen = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  const label = $('fullscreenLabel');
+  const button = $('fullscreenBtn');
+  if (!label || !button) return;
+  label.textContent = isFullscreen ? 'Свернуть' : 'Во весь экран';
+  button.setAttribute('aria-label', isFullscreen ? 'Выйти из полноэкранного режима' : 'Включить полноэкранный режим');
+  button.title = isFullscreen ? 'Выйти из полноэкранного режима' : 'Во весь экран';
+  button.classList.toggle('is-active', isFullscreen);
+}
+
+async function requestFullscreenFromGesture() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) return true;
+  try {
+    const root = document.documentElement;
+    if (root.requestFullscreen) {
+      await root.requestFullscreen({ navigationUI: 'hide' });
+      syncFullscreenButton();
+      return true;
+    }
+    if (root.webkitRequestFullscreen) {
+      root.webkitRequestFullscreen();
+      syncFullscreenButton();
+      return true;
+    }
+  } catch { /* Fullscreen is optional; some browsers restrict it or do not support it. */ }
+  return false;
+}
+
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) await document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else {
+      const entered = await requestFullscreenFromGesture();
+      if (!entered) toast('Этот браузер не разрешил полный экран. Попробуй открыть игру через меню браузера.');
+    }
+  } catch {
+    toast('Не удалось включить полный экран в этом браузере.');
+  }
+  syncFullscreenButton();
+}
+
+document.addEventListener('fullscreenchange', syncFullscreenButton);
+document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
 function makeSocket() {
   if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) return state.ws;
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -70,12 +117,14 @@ function reconnectToRoom() {
 }
 function createRoom() {
   const name = getName(); if (!name) return;
+  requestFullscreenFromGesture();
   const ws = makeSocket();
   const create = () => ws.send(JSON.stringify({ type: 'createRoom', name, playerId: state.playerId }));
   if (ws.readyState === WebSocket.OPEN) create(); else ws.addEventListener('open', create, { once: true });
 }
 function joinRoom() {
   const name = getName(); if (!name) return;
+  requestFullscreenFromGesture();
   const code = $('roomCode').value.trim().toUpperCase();
   if (!/^[A-HJ-NP-Z2-9]{5}$/.test(code)) { toast('Введи корректный код из 5 символов'); $('roomCode').focus(); return; }
   state.roomCode = code;
@@ -173,6 +222,7 @@ function renderResults() {
 
 $('createRoomBtn').addEventListener('click', createRoom);
 $('joinRoomBtn').addEventListener('click', joinRoom);
+$('fullscreenBtn').addEventListener('click', toggleFullscreen);
 $('roomCode').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '').slice(0,5); });
 $('roomCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
 $('playerName').value = localStorage.getItem('auctionPlayerName') || '';
@@ -199,7 +249,8 @@ $('backToHomeBtn').addEventListener('click', () => {
   if (state.room?.phase === 'results') { state.roomCode = state.room.code; state.room = null; showScreen('lobbyScreen'); toast('Нажми «Сыграть ещё раз» у создателя комнаты.'); }
 });
 
-setConnection(false, 'Не подключён');
+setConnection(false, 'Подключение');
+syncFullscreenButton();
 // Rejoin a room after refresh when a room code was saved in this browser.
 const savedCode = sessionStorage.getItem('auctionRoomCode');
 if (savedCode && state.playerId) {
