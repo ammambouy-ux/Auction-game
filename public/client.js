@@ -201,12 +201,15 @@ function renderSellerStage(room, own) {
   const lot = room.currentLots.find((item) => item.lotId === (state.chosenLot || room.featuredLotId)) || room.currentLots[0];
   if (!seller || !lot) return;
   const stage = $('sellerStage');
-  const key = `${room.round}:${seller.id}:${lot.lotId}`;
+  const sellerIndex = room.players.findIndex((p) => p.id === seller.id);
+  const splitAt = Math.ceil(room.players.length / 2);
+  const enterFrom = sellerIndex < splitAt ? 'seller-from-left' : 'seller-from-right';
+  const key = `${room.round}:${seller.id}`;
   const animate = state.stageAnimationKey !== key;
   if (animate) {
     state.stageAnimationKey = key;
-    stage.classList.remove('seller-enter');
-    stage.classList.add('seller-pre-enter');
+    stage.classList.remove('seller-enter', 'seller-from-left', 'seller-from-right');
+    stage.classList.add('seller-pre-enter', enterFrom);
   }
   stage.innerHTML = `
     <div class="seller-enter-label">ПРОДАВЕЦ РАУНДА</div>
@@ -256,6 +259,7 @@ function renderGame() {
   $('lotGrid').querySelectorAll('.lot-card').forEach(button => button.addEventListener('click', () => {
     if (room.myChoice || room.phase !== 'choosing') return;
     state.chosenLot = button.dataset.lotId;
+    renderSellerStage(room, own);
     const lot = room.currentLots.find(l => l.lotId === state.chosenLot);
     $('bidAmount').min = lot.startPrice; $('bidAmount').max = own.cash; $('bidAmount').value = Math.min(own.cash, lot.startPrice);
     $('minimumBidLabel').textContent = `Минимум: ${money(lot.startPrice)}`;

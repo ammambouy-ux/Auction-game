@@ -489,3 +489,55 @@ body::after {
 }
 @keyframes seller-arrive { 0% { opacity: .15; transform: translateY(28px) scale(.94); filter: blur(2px); } 65% { opacity: 1; transform: translateY(-4px) scale(1.015); filter: blur(0); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: none; } }
 @media (prefers-reduced-motion: reduce) { .seller-stage.seller-enter { animation-duration: .01ms; } }
+
+
+/* Layout defaults also preserve the side-stage on large browser windows. */
+.player-avatar img { display:block; width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.result-row { grid-template-columns: 27px 38px minmax(0,1fr) minmax(0,.8fr); }
+.result-avatar { width:38px; height:48px; border-radius:4px; overflow:hidden; border:1px solid rgba(215,182,111,.3); }
+.result-avatar img { display:block; width:100%; height:100%; object-fit:cover; }
+@media (min-width: 701px) {
+  .game-screen { width:min(760px,100%); padding:28px 0 42px; }
+  .game-top h2 { margin-top:7px; font-size:clamp(24px,3vw,35px); }
+  .auction-stage {
+    display:grid; grid-template-columns:minmax(104px,.27fr) minmax(280px,1fr) minmax(104px,.27fr);
+    align-items:center; gap:10px; width:100%; margin:16px auto 18px; padding:14px 8px;
+    border-top:1px solid rgba(215,182,111,.22); border-bottom:1px solid rgba(215,182,111,.22);
+    background:radial-gradient(ellipse at 50% 62%,rgba(37,100,65,.34),transparent 61%),linear-gradient(180deg,rgba(2,17,11,.36),rgba(8,32,22,.58));
+  }
+  .players-rail { display:flex; flex-direction:column; gap:12px; min-width:0; justify-content:center; }
+  .side-player { position:relative; min-width:0; overflow:hidden; padding:5px; border:1px solid rgba(215,182,111,.24); border-radius:6px; background:linear-gradient(155deg,rgba(22,42,31,.98),rgba(3,16,11,.98)); text-align:center; opacity:.84; transform:scale(.97); }
+  .side-player.is-you { border-color:rgba(215,182,111,.55); opacity:1; }
+  .side-player.is-seller { border-color:#f0d9a0; opacity:1; transform:scale(1.015); box-shadow:0 0 16px rgba(215,182,111,.24),inset 0 0 0 1px rgba(215,182,111,.16); }
+  .side-player-portrait { height:clamp(90px,13vh,130px); overflow:hidden; border-radius:4px; background:#10271d; }
+  .side-player-portrait img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 20%; }
+  .side-player-name { margin-top:5px; font-size:10px; font-weight:800; line-height:1.15; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .side-player-cash { margin-top:4px; color:var(--gold-light); font:700 10px var(--display); white-space:nowrap; }
+  .side-player-status { margin-top:4px; color:#92a494; font-size:7px; font-weight:800; letter-spacing:.04em; white-space:nowrap; }
+  .seller-stage { position:relative; min-width:0; height:clamp(400px,54vh,520px); overflow:hidden; border:1px solid rgba(215,182,111,.49); border-radius:10px; background:radial-gradient(ellipse at 50% 35%,rgba(62,112,68,.8),rgba(12,45,29,.98) 62%,#03140d 100%); box-shadow:0 12px 30px rgba(0,0,0,.33),inset 0 0 0 4px rgba(215,182,111,.035); display:flex; flex-direction:column; align-items:center; transition:opacity .2s,transform .2s; }
+  .seller-stage::before { content:''; position:absolute; inset:6px; border:1px solid rgba(215,182,111,.15); border-radius:6px; pointer-events:none; z-index:2; }
+  .seller-stage::after { content:'♠'; position:absolute; top:45%; color:rgba(215,182,111,.045); font:140px/1 var(--display); pointer-events:none; }
+  .seller-stage.seller-pre-enter { opacity:.18; transform:translateY(22px) scale(.96); }
+  .seller-stage.seller-enter { animation:seller-arrive .82s cubic-bezier(.18,.76,.25,1) both; }
+  .seller-stage.seller-enter.seller-from-left { animation:seller-arrive-left .82s cubic-bezier(.18,.76,.25,1) both; }
+  .seller-stage.seller-enter.seller-from-right { animation:seller-arrive-right .82s cubic-bezier(.18,.76,.25,1) both; }
+  .seller-enter-label { z-index:3; position:absolute; top:16px; left:0; right:0; text-align:center; color:var(--gold-light); font-size:8px; font-weight:800; letter-spacing:.12em; }
+  .seller-portrait-wrap { position:relative; width:100%; height:72%; overflow:hidden; }
+  .seller-avatar { display:block; width:100%; height:100%; object-fit:cover; object-position:center 8%; filter:saturate(.96) contrast(1.04); }
+  .seller-portrait-wrap::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(0,0,0,.08),transparent 45%,#082219 100%); }
+  .seller-item-overlay { z-index:4; position:relative; flex:0 0 auto; display:flex; align-items:center; gap:8px; width:calc(100% - 20px); margin-top:-52px; padding:10px 8px; border:1px solid rgba(215,182,111,.58); border-radius:6px; background:linear-gradient(145deg,rgba(3,17,11,.97),rgba(11,35,24,.98)); box-shadow:0 6px 14px rgba(0,0,0,.38); }
+  .seller-item-symbol { display:grid; place-items:center; width:56px; height:64px; flex:0 0 56px; border:1px solid rgba(215,182,111,.66); border-radius:5px; background:linear-gradient(140deg,#f4e4bb,#c7a760); color:#163522; font:38px/1 var(--display); box-shadow:0 0 17px rgba(215,182,111,.13); }
+  .seller-item-details { min-width:0; text-align:left; }
+  .seller-item-details strong { display:block; color:var(--gold-light); font:700 14px/1.25 var(--display); overflow-wrap:anywhere; }
+  .seller-item-details span { display:block; margin-top:6px; color:#bdc9ba; font-size:10px; }
+  .seller-caption { z-index:3; display:flex; flex-direction:column; align-items:center; gap:4px; margin-top:12px; padding:0 8px 10px; text-align:center; }
+  .seller-caption strong { color:var(--text); font:700 16px/1.1 var(--display); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .seller-caption span { color:var(--gold); font-size:9px; line-height:1.2; text-align:center; }
+  .lot-section-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:5px 1px 8px; color:var(--gold-light); font-size:10px; font-weight:800; letter-spacing:.12em; }
+  .lot-section-title span:last-child { color:#829486; font-size:8px; }
+}
+@keyframes seller-arrive-left { 0% { opacity:0; transform:translate(-100px,26px) scale(.9); filter:blur(3px); } 65% { opacity:1; transform:translate(5px,-3px) scale(1.015); filter:blur(0); } 100% { opacity:1; transform:translate(0,0) scale(1); filter:none; } }
+@keyframes seller-arrive-right { 0% { opacity:0; transform:translate(100px,26px) scale(.9); filter:blur(3px); } 65% { opacity:1; transform:translate(-5px,-3px) scale(1.015); filter:blur(0); } 100% { opacity:1; transform:translate(0,0) scale(1); filter:none; } }
+@media (prefers-reduced-motion: reduce) {
+  .seller-stage.seller-enter.seller-from-left, .seller-stage.seller-enter.seller-from-right { animation-duration:.01ms; }
+}

@@ -40,3 +40,17 @@ test('practice room starts with the requested bots and bots make automatic bids'
   assert.equal(state.phase, 'revealing', 'round should resolve after the human bid is submitted');
   assert.ok(state.outcome);
 });
+
+test('practice match assigns unique character portraits and a seller/featured lot each round', (t) => {
+  const { room, player } = createPracticeRoom(new FakeSocket(), 'Portrait test', 'portrait-test-player', 5);
+  t.after(() => {
+    if (room.roundTimer) clearTimeout(room.roundTimer);
+    for (const timer of room.botTimers) clearTimeout(timer);
+    room.botTimers.clear();
+  });
+  startMatch(room, player);
+  const state = roomStateFor(room, player.id);
+  assert.equal(new Set(state.players.map((p) => p.characterId)).size, 6);
+  assert.ok(state.players.some((p) => p.id === state.sellerId));
+  assert.ok(state.currentLots.some((lot) => lot.lotId === state.featuredLotId));
+});
