@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPracticeRoom, startMatch, roomStateFor, submitChoice } from '../src/rooms.js';
+import { createPracticeRoom, startMatch, roomStateFor, submitChoice, selectLotForSale } from '../src/rooms.js';
 
 class FakeSocket {
   readyState = 1;
@@ -53,4 +53,33 @@ test('practice match assigns unique character portraits and a seller/featured lo
   assert.equal(new Set(state.players.map((p) => p.characterId)).size, 6);
   assert.ok(state.players.some((p) => p.id === state.sellerId));
   assert.ok(state.currentLots.some((lot) => lot.lotId === state.featuredLotId));
+});
+
+test('seller selects one of three lots; winning bid is transferred to seller', (t) => {
+  const { room, player } = createPracticeRoom(new FakeSocket(), 'Seller test', 'seller-test-player', 2);
+  t.after(() => {
+    if (room.roundTimer) clearTimeout(room.roundTimer);
+    for (const timer of room.botTimers) clearTimeout(timer);
+    room.botTimers.clear();
+  });
+  startMatch(room, player);
+  const seller = room.players.get(room.sellerId);
+  assert.equal(room.phase, 'sellerChoosing');
+  assert.equal(room.sellerOptions.length, 3);
+  assert.equal(roomStateFor(room, player.id).currentLots.length, player.id === room.sellerId ? 3 : 0);
+  assert.throws(() => submitChoice(room, seller, room.sellerOptions[0].lotId, room.sellerOptions[0].startPrice), /Сейчас нельзя делать ставку|не можешь делать ставку/);
+  const selected = room.sellerOptions[0];
+  selectLotForSale(room, seller, selected.lotId);
+  assert.equal(room.phase, 'choosing');
+  assert.equal(room.currentLots.length, 1);
+  for (const timer of room.botTimers) clearTimeout(timer);
+  room.botTimers.clear();
+  const bidders = [...room.players.values()].filter((p) => p.id !== seller.id);
+  const balanceBefore = seller.cash;
+  for (const bidder of bidders) submitChoice(room, bidder, selected.lotId, selected.startPrice);
+  assert.equal(seller.cash, balanceBefore + selected.startPrice);
+  assert.equal(seller.salesIncome, selected.startPrice);
+  assert.equal(room.phase, 'revealing');
+  assert.equal(room.lastOutcome.sold, true);
+  assert.equal(room.lastOutcome.sellerId, seller.id);
 });

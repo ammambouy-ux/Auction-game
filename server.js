@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { WebSocketServer } from 'ws';
-import { createRoom, createPracticeRoom, joinRoom, toggleReady, startMatch, submitChoice, nextMatch, handleDisconnect, sendError, broadcastRoom } from './src/rooms.js';
+import { createRoom, createPracticeRoom, joinRoom, toggleReady, startMatch, submitChoice, selectLotForSale, nextMatch, handleDisconnect, sendError, broadcastRoom } from './src/rooms.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -55,6 +55,9 @@ wss.on('connection', (ws) => {
         }
         case 'start': {
           requireRoom(); startMatch(currentRoom, currentPlayer); break;
+        }
+        case 'sellLot': {
+          requireRoom(); selectLotForSale(currentRoom, currentPlayer, message.lotId); break;
         }
         case 'bid': {
           requireRoom(); submitChoice(currentRoom, currentPlayer, message.lotId, message.bid); break;

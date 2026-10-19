@@ -541,3 +541,24 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   .seller-stage.seller-enter.seller-from-left, .seller-stage.seller-enter.seller-from-right { animation-duration:.01ms; }
 }
+
+
+/* Seller selection phase: the designated player picks one of three items. */
+.seller-choice-panel, .seller-wait-panel {
+  margin: 12px 0 4px; padding: 14px 15px;
+  border: 1px solid rgba(215,182,111,.38); border-radius: 6px;
+  background: linear-gradient(135deg, rgba(7,29,20,.96), rgba(7,24,17,.98));
+}
+.seller-choice-panel p { margin: 0 0 11px; color: var(--gold-light); font-size: 11px; line-height: 1.5; }
+.seller-choice-panel .btn { width: 100%; justify-content: space-between; }
+.seller-choice-panel .btn:disabled { opacity: .45; cursor: not-allowed; }
+.seller-wait-panel { color: #c2cbbb; font-size: 11px; line-height: 1.6; text-align: center; }
+.seller-select-placeholder {
+  z-index: 4; position: relative; width: calc(100% - 18px); margin-top: auto; margin-bottom: auto;
+  padding: 15px 10px; display: flex; flex-direction: column; gap: 7px; align-items: center; text-align: center;
+  background: linear-gradient(145deg, rgba(3,17,11,.96), rgba(11,35,24,.98));
+  border: 1px solid rgba(215,182,111,.58); border-radius: 6px;
+}
+.seller-select-placeholder strong { color: var(--gold-light); font: 700 12px/1.25 var(--display); }
+.seller-select-placeholder span { color: #bdc9ba; font-size: 9px; line-height: 1.45; }
+.seller-outcome { border-color: rgba(215,182,111,.35); background: rgba(215,182,111,.06); }

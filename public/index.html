@@ -99,9 +99,14 @@
         <section id="sellerStage" class="seller-stage"></section>
         <div id="rightPlayers" class="players-rail rail-right"></div>
       </div>
-      <div class="lot-section-title"><span>ВЫБЕРИ ЛОТ</span><span>3 ПРЕДМЕТА</span></div>
-      <div class="game-meta"><span id="inventoryLabel">Коллекция: 0</span><span id="sellerPrompt">Кто предложит больше?</span></div>
-      <div id="lotGrid" class="lot-grid"></div>
+      <div id="lotSectionTitle" class="lot-section-title hidden"><span>ТРИ ПРЕДМЕТА НА ВЫБОР</span><span>ВЫБЕРИ ОДИН</span></div>
+      <div id="gameMeta" class="game-meta"><span id="inventoryLabel">Коллекция: 0</span><span id="sellerPrompt">Кто предложит больше?</span></div>
+      <div id="lotGrid" class="lot-grid hidden"></div>
+      <section id="sellerChoicePanel" class="seller-choice-panel hidden">
+        <p id="sellerChoiceHint">Выбери предмет и выставь его на торги.</p>
+        <button id="exhibitLotBtn" class="btn btn-primary" disabled>Выставить выбранный предмет <span class="btn-icon">♠</span></button>
+      </section>
+      <section id="sellerWaitPanel" class="seller-wait-panel hidden">Продавец выбирает один из трёх предметов. Торги начнутся сразу после выбора.</section>
       <section id="bidPanel" class="bid-panel hidden">
         <div class="bid-panel-title"><span class="section-index">ТВОЯ СТАВКА</span><span id="minimumBidLabel" class="muted">Минимум: 300 ₵</span></div>
         <div class="bid-row"><div class="bid-input-wrap"><input id="bidAmount" type="number" min="300" step="10" inputmode="numeric" class="text-input bid-input"><span>₵</span></div><button id="submitBidBtn" class="btn btn-primary">Подтвердить ставку <span class="btn-icon">♠</span></button></div>
@@ -114,7 +119,7 @@
     <section id="resultsScreen" class="screen results-screen hidden">
       <div class="eyebrow"><span>♠</span> МАТЧ ЗАВЕРШЁН</div>
       <h2 id="resultsTitle">ИТОГИ ТОРГОВ</h2>
-      <p class="results-copy">Предметы автоматически проданы. Победитель определяется по чистой прибыли.</p>
+      <p class="results-copy">В конце матча учитываются оценка коллекции, расходы на покупки и деньги, полученные от продажи собственного предмета.</p>
       <div id="winnerBanner" class="winner-banner"></div>
       <section class="panel"><div class="panel-head"><span>РЕЗУЛЬТАТЫ</span><span class="muted">ЧИСТАЯ ПРИБЫЛЬ</span></div><div id="resultsList" class="results-list"></div></section>
       <button id="nextMatchBtn" class="btn btn-primary next-match-btn"><span>Сыграть ещё раз</span><span class="btn-icon">♠</span></button>

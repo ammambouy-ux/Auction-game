@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const screens = ['homeScreen', 'lobbyScreen', 'gameScreen', 'resultsScreen'];
-const state = { ws: null, connected: false, playerId: localStorage.getItem('auctionPlayerId') || null, roomCode: null, room: null, chosenLot: null, hasSubmittedBid: false, toastTimer: null, reconnectTimer: null, stageAnimationKey: null, lastRenderedRound: null };
+const state = { ws: null, connected: false, playerId: localStorage.getItem('auctionPlayerId') || null, roomCode: null, room: null, chosenLot: null, lastBidLotId: null, hasSubmittedBid: false, toastTimer: null, reconnectTimer: null, stageAnimationKey: null, lastRenderedRound: null };
 
 const ITEM_SYMBOLS = {
   'pocket-watch': '◷', 'sea-compass': '⌖', telescope: '⌕', 'pocket-mirror': '◉', 'ornate-key': '⚿', 'film-camera': '▣',
@@ -179,14 +179,16 @@ function renderState() {
   $('hostHint').textContent = own?.isHost ? 'Ты создатель комнаты. Начать матч можно, когда все нажмут «Готов».' : 'Ждём запуска от создателя комнаты. Для старта нужны 3–6 игроков и готовность всех участников.';
   $('waitHint').textContent = room.players.length < 3 ? `Нужно ещё ${3 - room.players.length} игрок${3 - room.players.length === 1 ? '' : 'а'} для старта.` : room.players.every(p => p.ready) ? 'Все готовы. Создатель может запускать матч.' : 'Лобби собрано. Нажмите «Готов», чтобы начать.';
   if (room.phase === 'lobby') { showScreen('lobbyScreen'); return; }
-  if (room.phase === 'choosing' || room.phase === 'revealing') { showScreen('gameScreen'); renderGame(); return; }
+  if (room.phase === 'sellerChoosing' || room.phase === 'choosing' || room.phase === 'revealing') { showScreen('gameScreen'); renderGame(); return; }
   if (room.phase === 'results') { showScreen('resultsScreen'); renderResults(); }
 }
 function renderPlayerRail(players, room, side) {
   const root = side === 'left' ? $('leftPlayers') : $('rightPlayers');
   root.innerHTML = players.map((p) => {
     const seller = p.id === room.sellerId;
-    const status = seller ? 'ПРОДАВЕЦ' : p.submitted ? 'СТАВКА ГОТОВА' : p.id === state.playerId ? 'ТЫ' : 'В ИГРЕ';
+    const status = seller
+      ? (room.phase === 'sellerChoosing' ? 'ВЫБИРАЕТ ЛОТ' : 'ПРОДАВЕЦ')
+      : p.submitted ? 'СТАВКА ГОТОВА' : p.id === state.playerId ? 'ТЫ' : 'В ИГРЕ';
     return `<div class="side-player ${seller ? 'is-seller' : ''} ${p.id === state.playerId ? 'is-you' : ''}">
       <div class="side-player-portrait"><img src="/characters/${esc(p.characterId || 'collector')}.svg" alt=""></div>
       <div class="side-player-name">${esc(p.id === state.playerId ? 'Ты' : p.name)}</div>
@@ -198,8 +200,11 @@ function renderPlayerRail(players, room, side) {
 
 function renderSellerStage(room, own) {
   const seller = room.players.find((p) => p.id === room.sellerId) || own;
-  const lot = room.currentLots.find((item) => item.lotId === (state.chosenLot || room.featuredLotId)) || room.currentLots[0];
-  if (!seller || !lot) return;
+  const isSeller = seller.id === state.playerId;
+  const selecting = room.phase === 'sellerChoosing';
+  const lot = selecting
+    ? (isSeller ? room.currentLots.find((item) => item.lotId === state.chosenLot) || null : null)
+    : room.currentLots[0] || null;
   const stage = $('sellerStage');
   const sellerIndex = room.players.findIndex((p) => p.id === seller.id);
   const splitAt = Math.ceil(room.players.length / 2);
@@ -211,14 +216,20 @@ function renderSellerStage(room, own) {
     stage.classList.remove('seller-enter', 'seller-from-left', 'seller-from-right');
     stage.classList.add('seller-pre-enter', enterFrom);
   }
-  stage.innerHTML = `
-    <div class="seller-enter-label">ПРОДАВЕЦ РАУНДА</div>
-    <div class="seller-portrait-wrap"><img class="seller-avatar" src="/characters/${esc(seller.characterId || 'collector')}.svg" alt="${esc(seller.characterName || 'Персонаж')}"></div>
+  const lotMarkup = lot ? `
     <div class="seller-item-overlay">
       <div class="seller-item-symbol">${ITEM_SYMBOLS[lot.itemId] || '◇'}</div>
-      <div class="seller-item-details"><strong>${esc(lot.name)}</strong><span>Старт: ${money(lot.startPrice)}</span></div>
-    </div>
-    <div class="seller-caption"><strong>${esc(seller.name)}${seller.id === state.playerId ? ' · ТЫ' : ''}</strong><span>${esc(seller.characterName || 'Продавец')} · предлагает лот</span></div>`;
+      <div class="seller-item-details"><strong>${esc(lot.name)}</strong><span>Стартовая цена: ${money(lot.startPrice)}</span></div>
+    </div>` : `
+    <div class="seller-select-placeholder">
+      <strong>${isSeller ? 'ТРИ ПРЕДМЕТА НА ВЫБОР' : 'ПРОДАВЕЦ ГОТОВИТ ЛОТ'}</strong>
+      <span>${isSeller ? 'Выбери один предмет ниже и выставь его на торги.' : `${esc(seller.name)} выбирает, какой предмет выставить.`}</span>
+    </div>`;
+  stage.innerHTML = `
+    <div class="seller-enter-label">${selecting ? (isSeller ? 'ТВОЙ ХОД — ВЫБЕРИ ПРЕДМЕТ' : 'ПОДГОТОВКА К ТОРГАМ') : 'ЛОТ НА ТОРГАХ'}</div>
+    <div class="seller-portrait-wrap"><img class="seller-avatar" src="/characters/${esc(seller.characterId || 'collector')}.svg" alt="${esc(seller.characterName || 'Персонаж')}"></div>
+    ${lotMarkup}
+    <div class="seller-caption"><strong>${esc(seller.name)}${seller.id === state.playerId ? ' · ТЫ' : ''}</strong><span>${esc(seller.characterName || 'Продавец')} · ${selecting ? (isSeller ? 'тебе предоставлены три предмета' : 'выбирает один из трёх предметов') : 'продаёт выбранный предмет'}</span></div>`;
   if (animate) requestAnimationFrame(() => {
     stage.classList.remove('seller-pre-enter');
     stage.classList.add('seller-enter');
@@ -226,10 +237,13 @@ function renderSellerStage(room, own) {
 }
 
 function renderGame() {
-  const room = state.room; const own = room.players.find(p => p.id === state.playerId);
+  const room = state.room;
+  const own = room.players.find((p) => p.id === state.playerId);
   if (!own) return;
+
   if (state.lastRenderedRound !== room.round) {
     state.chosenLot = null;
+    state.lastBidLotId = null;
     state.lastRenderedRound = room.round;
   }
   $('modeBadge').classList.toggle('hidden', room.mode !== 'practice');
@@ -237,47 +251,84 @@ function renderGame() {
   $('phaseLabel').textContent = `РАУНД ${room.round} / ${room.totalRounds}`;
   $('balanceLabel').textContent = `Баланс: ${money(own.cash)}`;
   $('inventoryLabel').textContent = `Коллекция: ${own.itemCount}`;
+
+  const isSeller = own.id === room.sellerId;
+  const selecting = room.phase === 'sellerChoosing';
+  const waitingForSeller = selecting && !isSeller;
+  const sellerPicking = selecting && isSeller;
+  const bidding = room.phase === 'choosing';
+  const lot = room.currentLots[0] || null;
+
   const splitAt = Math.ceil(room.players.length / 2);
   renderPlayerRail(room.players.slice(0, splitAt), room, 'left');
   renderPlayerRail(room.players.slice(splitAt), room, 'right');
   renderSellerStage(room, own);
-  $('sellerPrompt').textContent = room.phase === 'choosing' ? (room.myChoice ? 'Ждём остальные ставки' : 'Кто предложит больше?') : 'Ставки раскрыты';
+
+  $('sellerPrompt').textContent = selecting
+    ? (isSeller ? 'Выбери один предмет и выставь его' : `${room.players.find(p => p.id === room.sellerId)?.name || 'Продавец'} выбирает предмет`)
+    : bidding ? (isSeller ? 'Ты выставил лот — ждём покупателя' : 'Кто предложит больше?')
+    : 'Ставки раскрыты';
   $('inventoryCount').textContent = `${own.itemCount} предметов`;
-  $('inventoryList').innerHTML = room.myInventory?.length ? room.myInventory.map(item => `<div class="inventory-chip"><span class="chip-symbol">${ITEM_SYMBOLS[item.itemId] || '◇'}</span><div><strong>${esc(item.name)}</strong><span>Куплен за ${money(item.purchasePrice)} · оценка ${money(item.marketValue)}</span></div></div>`).join('') : '<div class="inventory-empty">Пока нет предметов. Выиграй первый лот.</div>';
-  const choosing = room.phase === 'choosing';
-  $('gameTitle').textContent = choosing ? (room.myChoice ? 'СТАВКА ПРИНЯТА' : 'АУКЦИОН ИДЁТ') : 'СТАВКИ РАСКРЫТЫ';
-  $('gameInstruction').textContent = choosing
-    ? (room.myChoice
-      ? `Твоя ставка принята. Ждём остальных игроков (${room.choicesSubmitted} / ${room.players.filter(p => p.online).length}).`
-      : `Выбери один лот и укажи ставку. Ставки скрыты до завершения раунда; каждый игрок может выиграть максимум один лот за раунд.${room.mode === 'practice' ? ' Боты сделают ставки автоматически.' : ''}`)
-    : 'Раунд завершён. Победители ставок получили предметы в коллекцию.';
-  $('lotGrid').innerHTML = room.currentLots.map((lot, i) => {
-    const selected = state.chosenLot === lot.lotId;
-    const feature = lot.feature ? `<div class="feature-tag ${lot.feature.delta < 0 ? 'negative' : ''}">${esc(lot.feature.name)} · ${lot.feature.delta > 0 ? '+' : ''}${lot.feature.delta}</div>` : '<div class="feature-tag" style="background:rgba(255,255,255,.04);color:#8390a4">Без особенностей</div>';
-    return `<button class="lot-card ${selected ? 'selected' : ''}" data-lot-id="${esc(lot.lotId)}" ${(!choosing || room.myChoice) ? 'disabled' : ''}><div class="lot-art"><span class="lot-number">ЛОТ 0${i+1}</span><span class="lot-symbol">${ITEM_SYMBOLS[lot.itemId] || '◇'}</span></div><div class="lot-body"><div class="lot-name">${esc(lot.name)}</div><div class="lot-description">${esc(lot.description)}</div>${feature}<div class="lot-price-row"><span>СТАРТОВАЯ ЦЕНА</span><strong>${money(lot.startPrice)}</strong></div></div></button>`;
+  $('inventoryList').innerHTML = room.myInventory?.length ? room.myInventory.map(item => `<div class="inventory-chip"><span class="chip-symbol">${ITEM_SYMBOLS[item.itemId] || '◇'}</span><div><strong>${esc(item.name)}</strong><span>${item.unsold ? 'Не продан · будет оценён в конце матча' : `Куплен за ${money(item.purchasePrice)} · оценка ${money(item.marketValue)}`}</span></div></div>`).join('') : '<div class="inventory-empty">Пока нет предметов. Выиграй первый лот.</div>';
+
+  $('gameTitle').textContent = selecting
+    ? (isSeller ? 'ВЫБЕРИ ПРЕДМЕТ ДЛЯ ПРОДАЖИ' : 'ПРОДАВЕЦ ВЫБИРАЕТ ЛОТ')
+    : bidding ? (isSeller ? 'ТВОЙ ЛОТ НА ТОРГАХ' : room.myChoice ? 'СТАВКА ПРИНЯТА' : 'АУКЦИОН ИДЁТ')
+    : 'СТАВКИ РАСКРЫТЫ';
+  $('gameInstruction').textContent = selecting
+    ? (isSeller ? 'Тебе предоставили три предмета. Выбери один — он станет лотом этого раунда. После этого остальные игроки смогут делать ставки.' : `Ждём, пока ${room.players.find(p => p.id === room.sellerId)?.name || 'продавец'} выберет один из трёх предметов. Ставки пока закрыты.`)
+    : bidding ? (isSeller
+      ? 'Ты выставил предмет и получишь деньги, если кто-то его купит. На собственный лот ставить нельзя.'
+      : room.myChoice
+        ? `Твоя ставка принята. Ждём остальных игроков (${room.choicesSubmitted} / ${room.players.filter(p => p.online && p.id !== room.sellerId).length}).`
+        : 'Продавец выставил один предмет. Выбери размер ставки и подтверди её.')
+    : 'Раунд завершён. Продавец получает выигравшую ставку, а купленный предмет остаётся у покупателя до финальной оценки.';
+
+  $('lotSectionTitle').classList.toggle('hidden', !sellerPicking);
+  $('gameMeta').classList.toggle('hidden', !sellerPicking);
+  $('lotGrid').classList.toggle('hidden', !sellerPicking);
+  $('sellerChoicePanel').classList.toggle('hidden', !sellerPicking);
+  $('sellerWaitPanel').classList.toggle('hidden', !waitingForSeller);
+  $('sellerChoiceHint').textContent = state.chosenLot
+    ? `Выбран: ${room.currentLots.find(l => l.lotId === state.chosenLot)?.name || 'предмет'}. Подтверди выставление.`
+    : 'Выбери один из трёх предметов. После подтверждения начнутся торги.';
+  $('exhibitLotBtn').disabled = !sellerPicking || !state.chosenLot || !room.currentLots.some(l => l.lotId === state.chosenLot);
+
+  const offeredLots = sellerPicking ? room.currentLots : [];
+  $('lotGrid').innerHTML = offeredLots.map((item, i) => {
+    const selected = state.chosenLot === item.lotId;
+    const feature = item.feature ? `<div class="feature-tag ${item.feature.delta < 0 ? 'negative' : ''}">${esc(item.feature.name)} · ${item.feature.delta > 0 ? '+' : ''}${item.feature.delta}</div>` : '<div class="feature-tag">Без особенностей</div>';
+    return `<button class="lot-card ${selected ? 'selected' : ''}" data-lot-id="${esc(item.lotId)}"><div class="lot-art"><span class="lot-number">ВЫБОР 0${i+1}</span><span class="lot-symbol">${ITEM_SYMBOLS[item.itemId] || '◇'}</span></div><div class="lot-body"><div class="lot-name">${esc(item.name)}</div><div class="lot-description">${esc(item.description)}</div>${feature}<div class="lot-price-row"><span>СТАРТОВАЯ ЦЕНА</span><strong>${money(item.startPrice)}</strong></div></div></button>`;
   }).join('');
-  $('lotGrid').querySelectorAll('.lot-card').forEach(button => button.addEventListener('click', () => {
-    if (room.myChoice || room.phase !== 'choosing') return;
+
+  $('lotGrid').querySelectorAll('.lot-card').forEach((button) => button.addEventListener('click', () => {
+    if (room.phase !== 'sellerChoosing' || own.id !== room.sellerId) return;
     state.chosenLot = button.dataset.lotId;
-    renderSellerStage(room, own);
-    const lot = room.currentLots.find(l => l.lotId === state.chosenLot);
-    $('bidAmount').min = lot.startPrice; $('bidAmount').max = own.cash; $('bidAmount').value = Math.min(own.cash, lot.startPrice);
-    $('minimumBidLabel').textContent = `Минимум: ${money(lot.startPrice)}`;
-    $('bidPanel').classList.remove('hidden');
     $('lotGrid').querySelectorAll('.lot-card').forEach(card => card.classList.toggle('selected', card === button));
-    $('bidStatus').textContent = `Укажи ставку от ${money(lot.startPrice)} до ${money(own.cash)}. Если твою ставку перебьют, предмет достанется сопернику.`;
-    $('bidAmount').focus();
+    $('sellerChoiceHint').textContent = `Выбран: ${room.currentLots.find(item => item.lotId === state.chosenLot)?.name || 'предмет'}. Подтверди выставление.`;
+    $('exhibitLotBtn').disabled = false;
+    renderSellerStage(room, own);
   }));
-  if (choosing && !room.myChoice) {
-    $('bidPanel').classList.toggle('hidden', !state.chosenLot);
-    $('submitBidBtn').disabled = !state.chosenLot;
-    $('revealPanel').classList.add('hidden');
-  } else {
-    $('bidPanel').classList.add('hidden');
+
+  $('bidPanel').classList.toggle('hidden', !bidding || isSeller || Boolean(room.myChoice));
+  if (bidding && !isSeller && lot) {
+    if (state.lastBidLotId !== lot.lotId) {
+      state.lastBidLotId = lot.lotId;
+      state.chosenLot = lot.lotId;
+      $('bidAmount').min = lot.startPrice;
+      $('bidAmount').max = own.cash;
+      $('bidAmount').value = Math.min(own.cash, lot.startPrice);
+      $('minimumBidLabel').textContent = `Минимум: ${money(lot.startPrice)}`;
+      $('submitBidBtn').disabled = false;
+      $('bidStatus').textContent = `Укажи ставку от ${money(lot.startPrice)} до ${money(own.cash)}.`;
+    }
   }
-  if (!choosing) renderRoundOutcome(room.lastOutcome);
+  if (bidding && !isSeller && room.myChoice) $('bidStatus').textContent = 'Ставка отправлена и скрыта от других игроков.';
+  if (bidding || selecting) $('revealPanel').classList.add('hidden');
+  if (!selecting && !bidding) renderRoundOutcome(room.lastOutcome);
   renderInventoryFromOutcome(room);
 }
+
 function renderInventoryFromOutcome(room) {
   const ownId = state.playerId;
   const itemRecords = [];
@@ -291,8 +342,12 @@ function renderRoundOutcome(outcome) {
   $('roundOutcomeLabel').textContent = outcome?.message || 'Раунд закрыт';
   const winners = outcome?.winners || [];
   const losers = outcome?.losers || [];
+  const sellerLine = outcome
+    ? `<div class="outcome-row seller-outcome"><strong>Продавец: ${esc(outcome.sellerName)} — ${esc(outcome.lotName)}</strong><span>${outcome.sold ? `Получено ${money(outcome.sellerIncome)}` : 'Лот остался у продавца'}</span></div>`
+    : '';
   const rows = [
-    ...winners.map(w => `<div class="outcome-row"><strong>✓ ${esc(w.playerName)} — ${esc(w.lotName)}</strong><span>Ставка ${money(w.bid)} · оценка ${money(w.marketValue)}</span></div>`),
+    sellerLine,
+    ...winners.map(w => `<div class="outcome-row"><strong>✓ ${esc(w.playerName)} купил «${esc(w.lotName)}»</strong><span>Ставка ${money(w.bid)} · оценка ${money(w.marketValue)}</span></div>`),
     ...losers.map(l => `<div class="outcome-row"><strong>— ${esc(l.playerName)} — ${esc(l.lotName)}</strong><span>Ставка ${money(l.bid)} · не выиграл</span></div>`)
   ];
   $('roundOutcomeList').innerHTML = rows.length ? rows.join('') : '<div class="inventory-empty">Нет выигранных лотов в этом раунде.</div>';
@@ -322,12 +377,19 @@ $('copyCodeBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(state.roomCode || $('roomCodeDisplay').textContent); toast('Код скопирован'); }
   catch { toast(`Код комнаты: ${state.roomCode || $('roomCodeDisplay').textContent}`); }
 });
+$('exhibitLotBtn').addEventListener('click', () => {
+  if (!state.chosenLot || !state.room || state.room.phase !== 'sellerChoosing') return;
+  send('sellLot', { lotId: state.chosenLot });
+  $('exhibitLotBtn').disabled = true;
+  $('sellerChoiceHint').textContent = 'Выставляем предмет на торги…';
+});
 $('submitBidBtn').addEventListener('click', () => {
-  if (!state.chosenLot) { toast('Сначала выбери лот'); return; }
-  const bid = Number($('bidAmount').value);
   const lot = state.room?.currentLots.find(l => l.lotId === state.chosenLot);
-  if (!lot || !Number.isInteger(bid) || bid < lot.startPrice) { toast(`Минимальная ставка — ${lot?.startPrice ?? 300} монет`); return; }
+  if (!lot || state.room?.phase !== 'choosing') { toast('Дождись, пока продавец выставит предмет'); return; }
   const own = state.room.players.find(p => p.id === state.playerId);
+  if (own?.id === state.room.sellerId) { toast('Нельзя ставить на собственный предмет'); return; }
+  const bid = Number($('bidAmount').value);
+  if (!Number.isInteger(bid) || bid < lot.startPrice) { toast(`Минимальная ставка — ${lot.startPrice} монет`); return; }
   if (!own || bid > own.cash) { toast('Недостаточно денег для такой ставки'); return; }
   send('bid', { lotId: state.chosenLot, bid });
   $('submitBidBtn').disabled = true;
