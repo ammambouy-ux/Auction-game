@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const screens = ['homeScreen', 'lobbyScreen', 'gameScreen', 'resultsScreen'];
-const state = { ws: null, connected: false, playerId: localStorage.getItem('auctionPlayerId') || null, roomCode: null, room: null, chosenLot: null, hasSubmittedBid: false, toastTimer: null, reconnectTimer: null };
+const state = { ws: null, connected: false, playerId: localStorage.getItem('auctionPlayerId') || null, roomCode: null, room: null, chosenLot: null, hasSubmittedBid: false, toastTimer: null, reconnectTimer: null, stageAnimationKey: null, lastRenderedRound: null };
 
 const ITEM_SYMBOLS = {
   'pocket-watch': '◷', 'sea-compass': '⌖', telescope: '⌕', 'pocket-mirror': '◉', 'ornate-key': '⚿', 'film-camera': '▣',
@@ -168,7 +168,7 @@ function renderState() {
   $('roomCodeDisplay').textContent = room.code;
   $('playerCount').textContent = room.players.length;
   $('readyCount').textContent = `${room.players.filter(p => p.ready).length} / ${room.players.length} готовы`;
-  $('playerList').innerHTML = room.players.map((p, i) => `<div class="player-row"><div class="player-avatar">${esc((p.name || '?').slice(0,1).toUpperCase())}</div><div class="player-info"><strong>${esc(p.name)}${p.id === state.playerId ? ' (ты)' : ''}</strong><span>${p.isBot ? `Бот · ${esc(p.botStyle || 'ИИ')}` : p.isHost ? 'Создатель комнаты' : (p.online ? 'В игре' : 'Переподключение…')}</span></div><div class="player-status ${p.ready ? 'ready' : ''}">${p.ready ? '✓ Готов' : 'Ожидает'}</div></div>`).join('');
+  $('playerList').innerHTML = room.players.map((p) => `<div class="player-row"><div class="player-avatar"><img src="/characters/${esc(p.characterId || 'collector')}.svg" alt=""></div><div class="player-info"><strong>${esc(p.name)}${p.id === state.playerId ? ' (ты)' : ''}</strong><span>${esc(p.characterName || 'Коллекционер')}${p.isBot ? ` · бот: ${esc(p.botStyle || 'ИИ')}` : p.isHost ? ' · создатель' : ''}</span></div><div class="player-status ${p.ready ? 'ready' : ''}">${p.ready ? '✓ Готов' : 'Ожидает'}</div></div>`).join('');
   const own = room.players.find(p => p.id === state.playerId);
   $('readyBtn').disabled = !own || room.phase !== 'lobby';
   $('readyBtn').querySelector('span:first-child').textContent = own?.ready ? 'Не готов' : 'Я готов';
@@ -182,18 +182,67 @@ function renderState() {
   if (room.phase === 'choosing' || room.phase === 'revealing') { showScreen('gameScreen'); renderGame(); return; }
   if (room.phase === 'results') { showScreen('resultsScreen'); renderResults(); }
 }
+function renderPlayerRail(players, room, side) {
+  const root = side === 'left' ? $('leftPlayers') : $('rightPlayers');
+  root.innerHTML = players.map((p) => {
+    const seller = p.id === room.sellerId;
+    const status = seller ? 'ПРОДАВЕЦ' : p.submitted ? 'СТАВКА ГОТОВА' : p.id === state.playerId ? 'ТЫ' : 'В ИГРЕ';
+    return `<div class="side-player ${seller ? 'is-seller' : ''} ${p.id === state.playerId ? 'is-you' : ''}">
+      <div class="side-player-portrait"><img src="/characters/${esc(p.characterId || 'collector')}.svg" alt=""></div>
+      <div class="side-player-name">${esc(p.id === state.playerId ? 'Ты' : p.name)}</div>
+      <div class="side-player-cash">${money(p.cash)}</div>
+      <div class="side-player-status">${status}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderSellerStage(room, own) {
+  const seller = room.players.find((p) => p.id === room.sellerId) || own;
+  const lot = room.currentLots.find((item) => item.lotId === (state.chosenLot || room.featuredLotId)) || room.currentLots[0];
+  if (!seller || !lot) return;
+  const stage = $('sellerStage');
+  const key = `${room.round}:${seller.id}:${lot.lotId}`;
+  const animate = state.stageAnimationKey !== key;
+  if (animate) {
+    state.stageAnimationKey = key;
+    stage.classList.remove('seller-enter');
+    stage.classList.add('seller-pre-enter');
+  }
+  stage.innerHTML = `
+    <div class="seller-enter-label">ПРОДАВЕЦ РАУНДА</div>
+    <div class="seller-portrait-wrap"><img class="seller-avatar" src="/characters/${esc(seller.characterId || 'collector')}.svg" alt="${esc(seller.characterName || 'Персонаж')}"></div>
+    <div class="seller-item-overlay">
+      <div class="seller-item-symbol">${ITEM_SYMBOLS[lot.itemId] || '◇'}</div>
+      <div class="seller-item-details"><strong>${esc(lot.name)}</strong><span>Старт: ${money(lot.startPrice)}</span></div>
+    </div>
+    <div class="seller-caption"><strong>${esc(seller.name)}${seller.id === state.playerId ? ' · ТЫ' : ''}</strong><span>${esc(seller.characterName || 'Продавец')} · предлагает лот</span></div>`;
+  if (animate) requestAnimationFrame(() => {
+    stage.classList.remove('seller-pre-enter');
+    stage.classList.add('seller-enter');
+  });
+}
+
 function renderGame() {
   const room = state.room; const own = room.players.find(p => p.id === state.playerId);
   if (!own) return;
+  if (state.lastRenderedRound !== room.round) {
+    state.chosenLot = null;
+    state.lastRenderedRound = room.round;
+  }
   $('modeBadge').classList.toggle('hidden', room.mode !== 'practice');
   $('roundNumber').textContent = String(room.round).padStart(2, '0');
   $('phaseLabel').textContent = `РАУНД ${room.round} / ${room.totalRounds}`;
   $('balanceLabel').textContent = `Баланс: ${money(own.cash)}`;
   $('inventoryLabel').textContent = `Коллекция: ${own.itemCount}`;
+  const splitAt = Math.ceil(room.players.length / 2);
+  renderPlayerRail(room.players.slice(0, splitAt), room, 'left');
+  renderPlayerRail(room.players.slice(splitAt), room, 'right');
+  renderSellerStage(room, own);
+  $('sellerPrompt').textContent = room.phase === 'choosing' ? (room.myChoice ? 'Ждём остальные ставки' : 'Кто предложит больше?') : 'Ставки раскрыты';
   $('inventoryCount').textContent = `${own.itemCount} предметов`;
   $('inventoryList').innerHTML = room.myInventory?.length ? room.myInventory.map(item => `<div class="inventory-chip"><span class="chip-symbol">${ITEM_SYMBOLS[item.itemId] || '◇'}</span><div><strong>${esc(item.name)}</strong><span>Куплен за ${money(item.purchasePrice)} · оценка ${money(item.marketValue)}</span></div></div>`).join('') : '<div class="inventory-empty">Пока нет предметов. Выиграй первый лот.</div>';
   const choosing = room.phase === 'choosing';
-  $('gameTitle').textContent = choosing ? (room.myChoice ? 'СТАВКА ПРИНЯТА.' : 'ВЫБЕРИ СВОЙ ЛОТ.') : 'СТАВКИ ОТКРЫТЫ.';
+  $('gameTitle').textContent = choosing ? (room.myChoice ? 'СТАВКА ПРИНЯТА' : 'АУКЦИОН ИДЁТ') : 'СТАВКИ РАСКРЫТЫ';
   $('gameInstruction').textContent = choosing
     ? (room.myChoice
       ? `Твоя ставка принята. Ждём остальных игроков (${room.choicesSubmitted} / ${room.players.filter(p => p.online).length}).`
@@ -249,7 +298,7 @@ function renderResults() {
   const winner = results[0];
   if (!winner) return;
   $('winnerBanner').innerHTML = `<div><small>ПОБЕДИТЕЛЬ МАТЧА</small><h3>${esc(winner.name)}</h3></div><div class="winner-profit">${winner.netProfit >= 0 ? '+' : ''}${money(winner.netProfit)}</div>`;
-  $('resultsList').innerHTML = results.map((p, i) => `<div class="result-row ${p.winner ? 'winner' : ''}"><div class="result-rank">${String(i + 1).padStart(2, '0')}</div><div class="result-player"><strong>${esc(p.name)}${p.playerId === state.playerId ? ' (ты)' : ''}</strong><span>${p.items.length} предметов · потрачено ${money(p.spent)}</span></div><div class="result-metric"><span>ПРОДАЖИ</span><strong>${money(p.revenue)}</strong></div><div class="result-metric profit"><span>ПРИБЫЛЬ</span><strong>${p.netProfit >= 0 ? '+' : ''}${money(p.netProfit)}</strong></div></div>`).join('');
+  $('resultsList').innerHTML = results.map((p, i) => `<div class="result-row ${p.winner ? 'winner' : ''}"><div class="result-rank">${String(i + 1).padStart(2, '0')}</div><div class="result-avatar"><img src="/characters/${esc(p.characterId || 'collector')}.svg" alt=""></div><div class="result-player"><strong>${esc(p.name)}${p.playerId === state.playerId ? ' (ты)' : ''}</strong><span>${esc(p.characterName || 'Коллекционер')} · ${p.items.length} предметов</span></div><div class="result-metric profit"><span>ЧИСТАЯ ПРИБЫЛЬ</span><strong>${p.netProfit >= 0 ? '+' : ''}${money(p.netProfit)}</strong></div></div>`).join('');
   const own = state.room.players.find(p => p.id === state.playerId);
   $('nextMatchBtn').classList.toggle('hidden', !own?.isHost);
   $('backToHomeBtn').textContent = own?.isHost ? 'Вернуться в лобби' : 'Остаться в комнате';

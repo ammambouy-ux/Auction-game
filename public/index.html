@@ -86,11 +86,27 @@
     </section>
 
     <section id="gameScreen" class="screen game-screen hidden">
-      <div class="game-top"><div><div class="eyebrow"><span>♠</span> <span id="phaseLabel">РАУНД 1</span><span id="modeBadge" class="mode-badge hidden">ТЕСТ С БОТАМИ</span></div><h2 id="gameTitle">ВЫБЕРИ ЛОТ</h2></div><div class="round-badge"><span>РАУНД</span><strong id="roundNumber">01</strong><small>/ 05</small></div></div>
-      <div class="game-meta"><span id="balanceLabel">Баланс: 5 000 ₵</span><span id="inventoryLabel">Коллекция: 0</span></div>
-      <p id="gameInstruction" class="game-instruction">Выбери один из трёх лотов и сделай ставку.</p>
+      <div class="game-top">
+        <div class="game-heading">
+          <div class="eyebrow"><span>♠</span><span id="phaseLabel">РАУНД 1 / 5</span><span id="modeBadge" class="mode-badge hidden">ТЕСТ С БОТАМИ</span></div>
+          <h2 id="gameTitle">АУКЦИОН ИДЁТ</h2>
+        </div>
+        <div class="round-badge"><span>БАЛАНС</span><strong id="balanceLabel">5 000 ₵</strong><small id="roundNumber">01 / 05</small></div>
+      </div>
+      <p id="gameInstruction" class="game-instruction">Выбери один лот и сделай ставку.</p>
+      <div id="auctionStage" class="auction-stage" aria-label="Сцена аукциона">
+        <div id="leftPlayers" class="players-rail rail-left"></div>
+        <section id="sellerStage" class="seller-stage"></section>
+        <div id="rightPlayers" class="players-rail rail-right"></div>
+      </div>
+      <div class="lot-section-title"><span>ВЫБЕРИ ЛОТ</span><span>3 ПРЕДМЕТА</span></div>
+      <div class="game-meta"><span id="inventoryLabel">Коллекция: 0</span><span id="sellerPrompt">Кто предложит больше?</span></div>
       <div id="lotGrid" class="lot-grid"></div>
-      <section id="bidPanel" class="bid-panel hidden"><div class="bid-panel-title"><span class="section-index">ТВОЯ СТАВКА</span><span id="minimumBidLabel" class="muted">Минимум: 300 ₵</span></div><div class="bid-row"><div class="bid-input-wrap"><input id="bidAmount" type="number" min="300" step="10" inputmode="numeric" class="text-input bid-input"><span>₵</span></div><button id="submitBidBtn" class="btn btn-primary">Подтвердить ставку <span class="btn-icon">♠</span></button></div><p id="bidStatus" class="bid-status">Ставка скрыта до конца раунда.</p></section>
+      <section id="bidPanel" class="bid-panel hidden">
+        <div class="bid-panel-title"><span class="section-index">ТВОЯ СТАВКА</span><span id="minimumBidLabel" class="muted">Минимум: 300 ₵</span></div>
+        <div class="bid-row"><div class="bid-input-wrap"><input id="bidAmount" type="number" min="300" step="10" inputmode="numeric" class="text-input bid-input"><span>₵</span></div><button id="submitBidBtn" class="btn btn-primary">Подтвердить ставку <span class="btn-icon">♠</span></button></div>
+        <p id="bidStatus" class="bid-status">Ставка скрыта до конца раунда.</p>
+      </section>
       <section id="revealPanel" class="reveal-panel hidden"><div class="panel-head"><span>ИТОГИ РАУНДА</span><span id="roundOutcomeLabel" class="muted"></span></div><div id="roundOutcomeList" class="outcome-list"></div><div class="next-round-note">Следующий раунд скоро начнётся.</div></section>
       <section class="inventory-panel"><div class="panel-head"><span>ТВОЯ КОЛЛЕКЦИЯ</span><span id="inventoryCount" class="muted">0 предметов</span></div><div id="inventoryList" class="inventory-list"><div class="inventory-empty">Здесь появятся выигранные лоты.</div></div></section>
     </section>

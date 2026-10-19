@@ -20,6 +20,34 @@ const BOT_PROFILES = [
   { name: 'Джокер', style: 'Непредсказуемый', strategy: 'chaotic' }
 ];
 
+const CHARACTER_PROFILES = [
+  { id: 'sheikh', title: 'Богатый шейх' },
+  { id: 'mafia', title: 'Босс мафии' },
+  { id: 'heiress', title: 'Светская львица' },
+  { id: 'cowboy', title: 'Техасский магнат' },
+  { id: 'tycoon', title: 'Теневой бизнесмен' },
+  { id: 'collector', title: 'Старый коллекционер' }
+];
+
+function assignCharacter(room, player) {
+  if (player.characterId) return;
+  const used = new Set([...room.players.values()].map((p) => p.characterId).filter(Boolean));
+  const available = CHARACTER_PROFILES.filter((profile) => !used.has(profile.id));
+  const pool = available.length ? available : CHARACTER_PROFILES;
+  const profile = pool[crypto.randomInt(pool.length)];
+  player.characterId = profile.id;
+  player.characterName = profile.title;
+}
+
+function chooseSeller(room) {
+  const online = [...room.players.values()].filter((p) => p.online);
+  const pool = online.length ? online : [...room.players.values()];
+  const seller = pool[crypto.randomInt(pool.length)];
+  room.sellerId = seller?.id ?? null;
+  const lot = room.currentLots.length ? room.currentLots[crypto.randomInt(room.currentLots.length)] : null;
+  room.featuredLotId = lot?.lotId ?? null;
+}
+
 function roomFor(code) {
   const room = rooms.get(String(code ?? '').toUpperCase());
   if (!room) throw new Error('Комната не найдена. Проверь код.');
@@ -35,6 +63,8 @@ function publicRoom(room, viewerId) {
   return {
     code: room.code,
     mode: room.mode || 'online',
+    sellerId: room.sellerId || null,
+    featuredLotId: room.featuredLotId || null,
     phase: room.phase,
     hostId: room.hostId,
     round: room.round,
@@ -42,7 +72,9 @@ function publicRoom(room, viewerId) {
     players: [...room.players.values()].map((p) => ({
       id: p.id, name: p.name, ready: p.ready, online: p.online,
       cash: p.cash, itemCount: p.inventory.length,
-      isHost: p.id === room.hostId, isBot: Boolean(p.isBot), botStyle: p.botStyle || null
+      isHost: p.id === room.hostId, isBot: Boolean(p.isBot), botStyle: p.botStyle || null,
+      characterId: p.characterId || 'collector', characterName: p.characterName || 'Коллекционер',
+      submitted: Boolean(p.choice)
     })),
     currentLots: room.phase === 'choosing'
       ? room.currentLots.map(({ marketValue, ...lot }) => lot)
@@ -77,9 +109,10 @@ export function createRoom(ws, rawName, rawPlayerId) {
   const player = { id: playerId, name: cleanName(rawName), ws, online: true, ready: false, cash: STARTING_CASH, inventory: [], choice: null, spent: 0 };
   const room = {
     code, hostId: playerId, players: new Map([[playerId, player]]), phase: 'lobby', round: 0,
-    currentLots: [], mode: 'online', botTimers: new Set(), lastOutcome: null, results: null,
-    roundTimer: null, cleanupTimer: null, createdAt: Date.now()
+    currentLots: [], mode: 'online', botTimers: new Set(), sellerId: null, featuredLotId: null,
+    lastOutcome: null, results: null, roundTimer: null, cleanupTimer: null, createdAt: Date.now()
   };
+  assignCharacter(room, player);
   rooms.set(code, room);
   player.ws = ws;
   return { room, player };
@@ -112,6 +145,7 @@ export function createPracticeRoom(ws, rawName, rawPlayerId, rawBotCount) {
       botStyle: profile.style,
       botStrategy: profile.strategy
     };
+    assignCharacter(room, bot);
     room.players.set(bot.id, bot);
   }
   return created;
@@ -134,6 +168,7 @@ export function joinRoom(ws, rawCode, rawName, rawPlayerId) {
   if (room.phase !== 'lobby') throw new Error('Матч уже начался. Подключиться можно только к лобби.');
   if (room.players.size >= MAX_PLAYERS) throw new Error('Комната заполнена: максимум 6 игроков.');
   const player = { id: playerId, name: cleanName(rawName), ws, online: true, ready: false, cash: STARTING_CASH, inventory: [], choice: null, spent: 0 };
+  assignCharacter(room, player);
   room.players.set(playerId, player);
   return { room, player, resumed: false };
 }
@@ -166,6 +201,7 @@ export function startMatch(room, player) {
 function beginRound(room) {
   room.phase = 'choosing';
   room.currentLots = makeLots();
+  chooseSeller(room);
   room.lastOutcome = null;
   for (const p of room.players.values()) p.choice = null;
   emitRoom(room);
@@ -306,6 +342,9 @@ function finishMatch(room) {
     return {
       playerId: p.id,
       name: p.name,
+      characterId: p.characterId || 'collector',
+      characterName: p.characterName || 'Коллекционер',
+      isBot: Boolean(p.isBot),
       spent: p.spent,
       revenue,
       netProfit,
